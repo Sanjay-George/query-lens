@@ -1,0 +1,38 @@
+{
+  "name": "query-reviewer",
+  "version": "0.0.1",
+  "description": "CI tool that flags potentially slow SQL in PRs.",
+  "type": "module",
+  "bin": {
+    "query-reviewer": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "action.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "ai": "^4.0.0",
+    "commander": "^12.0.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  }
+}

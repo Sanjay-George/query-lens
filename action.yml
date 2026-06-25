@@ -1,0 +1,16 @@
+name: 'Query Reviewer'
+description: 'Flags potentially slow SQL in pull requests.'
+inputs:
+  config:
+    description: 'Path to .query-reviewer.yml'
+    required: false
+    default: '.query-reviewer.yml'
+  anthropic-api-key:
+    description: 'Anthropic API key (passed via env to the CLI)'
+    required: true
+  database-url:
+    description: 'Connection string to the target database (overrides config)'
+    required: false
+runs:
+  using: 'node20'
+  main: 'dist/cli.js'
