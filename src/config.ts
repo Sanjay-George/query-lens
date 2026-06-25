@@ -17,17 +17,53 @@ const ThresholdsSchema = z.object({
   largeTableRows: z.number().int().positive().default(10_000),
   maxQueriesPerPr: z.number().int().positive().default(20),
   minExtractorConfidence: z.number().min(0).max(1).default(0.7),
+  rowsFilteredRatio: z.number().min(0).max(1).default(0.9),
 });
+
+const LlmModelsSchema = z.object({
+  small: z.string().min(1),
+  large: z.string().min(1),
+});
+
+// API keys never live in config — they come from the environment (ANTHROPIC_API_KEY
+// / AZURE_API_KEY). Azure needs a resource name and explicit per-tier deployment
+// names; Anthropic falls back to built-in model defaults.
+const LlmConfigSchema = z
+  .object({
+    provider: z.enum(['anthropic', 'azure']).default('anthropic'),
+    resourceName: z.string().min(1).optional(),
+    models: LlmModelsSchema.partial().optional(),
+  })
+  .superRefine((cfg, ctx) => {
+    if (cfg.provider !== 'azure') return;
+    if (!cfg.resourceName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'llm.resourceName is required when provider is "azure"',
+        path: ['resourceName'],
+      });
+    }
+    if (!cfg.models?.small || !cfg.models?.large) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'llm.models.small and llm.models.large (Azure deployment names) are required when provider is "azure"',
+        path: ['models'],
+      });
+    }
+  });
 
 const ConfigSchema = z.object({
   db: DbTargetSchema,
   thresholds: ThresholdsSchema.default({}),
+  llm: LlmConfigSchema.default({}),
   ignore: z.array(z.string()).default([]),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
 export type DbTarget = z.infer<typeof DbTargetSchema>;
 export type Thresholds = z.infer<typeof ThresholdsSchema>;
+export type LlmConfig = z.infer<typeof LlmConfigSchema>;
 
 export const DEFAULT_CONFIG_PATH = '.query-lens.yml';
 

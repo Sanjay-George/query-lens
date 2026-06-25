@@ -29,6 +29,7 @@ export interface PlanNode {
   estimatedRows?: number;
   actualRows?: number;
   actualTimeMs?: number;
+  rowsRemovedByFilter?: number;
   children: PlanNode[];
 }
 
