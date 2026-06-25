@@ -1,6 +1,12 @@
 #!/usr/bin/env node
+import { readFile } from 'node:fs/promises';
 import { Command } from 'commander';
 import { loadConfig, DEFAULT_CONFIG_PATH } from './config.js';
+import { createLlmClient } from './llm/factory.js';
+import { PostgresAdapter } from './db/postgres.js';
+import { ContextResolver } from './diff/context.js';
+import { ConsoleReporter } from './report/console.js';
+import { reviewDiff } from './pipeline.js';
 
 const program = new Command();
 
@@ -17,14 +23,30 @@ program
   .option('--pr <number>', 'GitHub PR number to review')
   .action(async (opts: { config: string; diff?: string; pr?: string }) => {
     const config = await loadConfig(opts.config);
-    // eslint-disable-next-line no-console
-    console.log('[query-lens] loaded config for dialect:', config.db.dialect);
     if (!opts.diff && !opts.pr) {
       throw new Error('one of --diff or --pr is required');
     }
-    // TODO(M1+): diff fetch → extract → analyze → judge → optimize → report
-    // eslint-disable-next-line no-console
-    console.log('[query-lens] pipeline not yet implemented (M0 scaffold)');
+    if (opts.pr) {
+      // GitHub PR fetch + inline reporting lands in M4.
+      throw new Error('--pr is not yet implemented; use --diff for now');
+    }
+
+    const diffText = await readFile(opts.diff!, 'utf8');
+    const db = new PostgresAdapter(config.db.url);
+    try {
+      const resolver = await ContextResolver.create();
+      const results = await reviewDiff({
+        diffText,
+        config,
+        llm: createLlmClient(config.llm),
+        db,
+        resolver,
+        readFile: (p) => readFile(p, 'utf8'),
+      });
+      new ConsoleReporter().report(results);
+    } finally {
+      await db.close();
+    }
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
