@@ -7,13 +7,13 @@ import { loadConfig, dialectFromUrl } from '../src/config.js';
 describe('loadConfig', () => {
   it('parses a minimal config and applies threshold defaults', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'qr-cfg-'));
-    const path = join(dir, '.query-reviewer.yml');
+    const path = join(dir, '.query-lens.yml');
     await writeFile(
       path,
       `db:\n  dialect: postgres\n  url: postgres://localhost/x\n`,
       'utf8',
     );
-    const cfg = await loadConfig('.query-reviewer.yml', dir);
+    const cfg = await loadConfig('.query-lens.yml', dir);
     expect(cfg.db.dialect).toBe('postgres');
     expect(cfg.thresholds.slowQueryMs).toBe(200);
     expect(cfg.thresholds.minExtractorConfidence).toBe(0.7);
@@ -22,9 +22,9 @@ describe('loadConfig', () => {
 
   it('rejects unknown dialects', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'qr-cfg-'));
-    const path = join(dir, '.query-reviewer.yml');
+    const path = join(dir, '.query-lens.yml');
     await writeFile(path, `db:\n  dialect: oracle\n  url: x\n`, 'utf8');
-    await expect(loadConfig('.query-reviewer.yml', dir)).rejects.toThrow();
+    await expect(loadConfig('.query-lens.yml', dir)).rejects.toThrow();
   });
 });
 

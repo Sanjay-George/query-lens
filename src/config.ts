@@ -29,7 +29,7 @@ export type Config = z.infer<typeof ConfigSchema>;
 export type DbTarget = z.infer<typeof DbTargetSchema>;
 export type Thresholds = z.infer<typeof ThresholdsSchema>;
 
-export const DEFAULT_CONFIG_PATH = '.query-reviewer.yml';
+export const DEFAULT_CONFIG_PATH = '.query-lens.yml';
 
 export async function loadConfig(
   path: string = DEFAULT_CONFIG_PATH,

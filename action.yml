@@ -1,10 +1,9 @@
-name: 'Query Reviewer'
 description: 'Flags potentially slow SQL in pull requests.'
 inputs:
   config:
-    description: 'Path to .query-reviewer.yml'
+    description: 'Path to .query-lens.yml'
     required: false
-    default: '.query-reviewer.yml'
+    default: '.query-lens.yml'
   anthropic-api-key:
     description: 'Anthropic API key (passed via env to the CLI)'
     required: true
