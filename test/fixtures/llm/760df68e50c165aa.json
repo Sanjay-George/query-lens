@@ -1,0 +1,11 @@
+{
+  "queries": [
+    {
+      "startLine": 4,
+      "endLine": 6,
+      "sql": "SELECT * FROM users WHERE active = true",
+      "confidence": 0.95,
+      "codeSpan": "pool.query(\n    \"SELECT * FROM users WHERE active = true\",\n  )"
+    }
+  ]
+}
