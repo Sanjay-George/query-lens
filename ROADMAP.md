@@ -8,8 +8,8 @@ Milestones are intentionally small. Each one ships something reviewable.
 |---|---|---|
 | M0 | Scaffolding | ✅ done |
 | M1 | Diff reader + tree-sitter context | ✅ done |
-| M2 | Raw-SQL E2E against Postgres | ⏳ next |
-| M3 | SQL Server + MySQL adapters | ⏳ |
+| M2 | Raw-SQL E2E against Postgres | ✅ done |
+| M3 | SQL Server + MySQL adapters | ⏳ next |
 | M4 | Optimizer + GitHub reporter | ⏳ |
 | M5 | Eloquent extraction | ⏳ |
 | M6 | Prisma + SQLAlchemy extraction | ⏳ |
@@ -25,15 +25,15 @@ package.json, tsconfig (strict + `exactOptionalPropertyTypes`), Vitest, `LlmClie
 - Tree-sitter (WASM) `ContextResolver` for TypeScript/TSX/Python/PHP that returns the enclosing function and top-level imports for a given line range.
 - Note: `web-tree-sitter` pinned to `0.22.6` to match `tree-sitter-wasms@0.1.13` grammar ABI. Load via `createRequire` (ESM default import resolves to the Emscripten module under Vitest's transformer).
 
-### M2 — Raw-SQL E2E against Postgres
+### M2 — Raw-SQL E2E against Postgres ✅
 - Regex prefilter — files with no query-shaped tokens skip the LLM.
 - LLM extractor for raw SQL (small-tier model) that emits `ExtractedQuery[]` with `confidence` and the originating `codeSpan`.
-- `postgres.ts` `DbAdapter` — `EXPLAIN (ANALYZE, FORMAT JSON)` inside `BEGIN; … ROLLBACK;`.
+- `postgres.ts` `DbAdapter` — `EXPLAIN (ANALYZE, FORMAT JSON)` inside `BEGIN; … ROLLBACK;`; plan-only `EXPLAIN` for non-SELECT (never executes writes).
 - Plan normalizer → `NormalizedPlan` with flattened `PlanNode[]`.
-- Heuristic judge with three rules: `seq-scan-on-large-table`, `slow-execution`, `excessive-rows-filtered`. Require ≥2 failing rules to mark a query fail.
+- Heuristic judge with three rules: `seq-scan-on-large-table`, `slow-execution`, `excessive-rows-filtered`. **Any 1 failing rule flags a query** (advisory-only, see [DECISIONS.md](DECISIONS.md) §3/§9).
 - Console reporter.
-- End-to-end test on a fixture PR with recorded LLM responses.
-**This is the proof-point milestone.**
+- End-to-end test on a fixture PR with recorded LLM responses + fake DB adapter; opt-in live Postgres integration test via `docker-compose.yml` (gated by `RUN_DB_TESTS=1`).
+**This was the proof-point milestone.**
 
 ### M3 — SQL Server + MySQL adapters
 - `sqlserver.ts` — `SET STATISTICS XML ON` / `SET SHOWPLAN_XML`. XML → `NormalizedPlan`.

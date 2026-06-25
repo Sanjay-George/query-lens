@@ -13,7 +13,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 | Language | TypeScript, Node 20+, single package, packaged as a GH Action + standalone CLI |
 | DB provisioning | User's responsibility — connection string via GitHub secret |
 | Reporting | Inline PR review comments. **Advisory check (neutral) for MVP**, never fails CI |
-| LLM SDK | Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) behind our own `LlmClient` interface |
+| LLM SDK | Vercel AI SDK behind our own `LlmClient` interface. Providers: `@ai-sdk/anthropic` (default) and `@ai-sdk/azure` (Azure OpenAI), selected at runtime by `llm.provider` in config |
 | Tree-sitter | `web-tree-sitter@0.22.6` + `tree-sitter-wasms@0.1.13` (single WASM runtime, prebuilt grammars) |
 
 ## Tradeoffs that were steelmanned
@@ -29,7 +29,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 - **Against:** hallucinated SQL is the worst possible failure mode — we'd analyse code the user didn't write. Diffs are partial; LLM may need surrounding files.
 
 ### 3. Heuristic judge in code vs. LLM judge
-**Decision:** code. Inputs: `total_cost`, `actual_time_ms`, `Seq Scan` on large tables, join count, rows-removed-by-filter ratio. Thresholds in `.query-lens.yml`. **Require ≥2 failing rules** to fail a query.
+**Decision:** code. Inputs: `total_cost`, `actual_time_ms`, `Seq Scan` on large tables, join count, rows-removed-by-filter ratio. Thresholds in `.query-lens.yml`. **Any 1 failing rule flags a query** — the tool is advisory-only for MVP (§6), so a noisy comment is low-stakes, and single-rule logic is simpler and more predictable than a ≥2 quorum. Revisit if false positives become a problem.
 - **For code:** deterministic, free, reviewable, no per-PR variance. Plan JSON from Postgres is structured.
 - **Against:** heuristics will be wrong on edge cases; tuning never ends.
 
@@ -53,6 +53,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 - LangChain rejected: heavy, churny, abstraction leaks at tool use / structured output / caching.
 - Vercel SDK chosen: provider-agnostic, structured output via Zod, ~10% of LangChain's surface area.
 - The internal interface keeps us free to swap to a 30-line direct adapter later if Vercel becomes a problem.
+- **Multi-provider:** `createLlmClient(config.llm)` ([src/llm/factory.ts](src/llm/factory.ts)) picks the impl at runtime from `llm.provider` (`anthropic` | `azure`). One provider-parameterized `VercelLlmClient` holds the structured-output logic; the factory only differs in which Vercel provider it instantiates and the model/deployment map. API keys come from env (`ANTHROPIC_API_KEY` / `AZURE_API_KEY`); Azure also needs `llm.resourceName` + per-tier deployment names in `llm.models`. Adding a third provider = one more `case` in the factory.
 
 ### 8. Extractor context: tree-sitter vs. naive ±N lines
 **Decision:** tree-sitter for enclosing function + top-level imports. 2-hop import resolution deferred until an extractor actually needs it.
@@ -62,7 +63,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 ### 9. Precision over recall
 **Decision:** missing a slow query is acceptable; flagging a fine query is not.
 - Extractor emits `confidence`; we drop anything below `thresholds.minExtractorConfidence` (default `0.7`).
-- Judge requires **≥2 independent failing rules** before failing a query.
+- Judge flags on **any 1 failing rule** (advisory-only, so favor catching over silence — see §3); each rule is independently tunable via `.query-lens.yml` thresholds.
 - Optimizer instructed to return `null` rather than emit weak "consider an index" filler.
 - Reporter never posts a comment without a verified line anchor.
 
