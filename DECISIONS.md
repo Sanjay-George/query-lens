@@ -80,6 +80,12 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 - The two `SET` statements are connection-scoped and must each be their own batch, so a `mssql` `Transaction` pins both to the same connection; the rollback also reverts any side effects of an executed SELECT.
 - **MySQL deferred until after the first vertical:** the goal is one complete vertical (extract → analyze → judge → optimize → report) on Postgres + SQL Server before widening DB coverage. MySQL's `EXPLAIN ANALYZE` also returns TREE-format *text*, not JSON, so actual-stat extraction needs a bespoke text parser unrelated to SQL Server's XML work — no reason to pull it forward. `mysql` stays a valid `dialect` in the config/types, but `createDbAdapter` throws until the adapter is built.
 
+### 12. GitHub API: thin `fetch` client vs. octokit
+**Decision:** a hand-rolled `GithubClient` interface ([src/report/github-client.ts](src/report/github-client.ts)) with a `fetch`-based impl, not `@octokit/rest`.
+- We touch exactly two endpoints: `GET pulls/:n` (as `.diff`) and `POST pulls/:n/reviews`. octokit's value (pagination, throttling/retry plugins, typed endpoint surface) buys us nothing here and adds a large dependency tree — exactly the balloon KISS/YAGNI tells us to avoid.
+- The interface is the seam: the `GithubReporter` depends on `GithubClient`, so the reporter test mocks it and asserts the exact review payload (path, line, side, body) without any network or octokit. If we ever need more of the API, swapping in an octokit-backed impl is one file.
+- The review is posted with `event: 'COMMENT'` so it never approves/requests-changes and never blocks the PR — the advisory stance from §6 enforced at the API call.
+
 ## Hidden gotchas (load-bearing)
 
 - **`exactOptionalPropertyTypes: true`** in `tsconfig.json` — means you can't pass `system: undefined` to the Vercel SDK. Spread-only-when-defined pattern is used in [src/llm/vercel.ts](src/llm/vercel.ts).

@@ -1,0 +1,7 @@
+{
+  "hasSuggestion": true,
+  "rationale": "The sequential scan reads all ~20,000 rows and discards 98% of them via the `active` filter. A partial index on `active = true` lets Postgres read only the matching rows instead of scanning the whole table.",
+  "indexHints": [
+    "CREATE INDEX CONCURRENTLY idx_users_active ON users (active) WHERE active = true;"
+  ]
+}

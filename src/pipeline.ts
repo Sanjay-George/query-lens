@@ -11,6 +11,7 @@ import { changedLineRanges, parseUnifiedDiff, type DiffFile } from './diff/reade
 import { hasQueryShape } from './extract/prefilter.js';
 import { extractQueries } from './extract/extractor.js';
 import { HeuristicJudge } from './judge/heuristic.js';
+import { LlmOptimizer, type Optimizer } from './optimize/optimizer.js';
 import type { ExtractedQuery, ReviewResult } from './types.js';
 
 const EMPTY_CONTEXT: Pick<CodeContext, 'imports' | 'enclosingFunction'> = {
@@ -25,6 +26,7 @@ export interface PipelineDeps {
   db: DbAdapter;
   resolver: ContextResolver;
   judge?: Judge;
+  optimizer?: Optimizer;
   /** Reads a working-tree file for context resolution. */
   readFile: (path: string) => Promise<string>;
 }
@@ -32,6 +34,7 @@ export interface PipelineDeps {
 export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
   const { config, llm, db, resolver, readFile } = deps;
   const judge = deps.judge ?? new HeuristicJudge();
+  const optimizer = deps.optimizer ?? new LlmOptimizer(llm);
   const files = parseUnifiedDiff(deps.diffText);
 
   const queries: ExtractedQuery[] = [];
@@ -56,7 +59,13 @@ export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
   const results: ReviewResult[] = [];
   for (const query of capped) {
     const plan = await db.analyze(query);
-    results.push({ query, plan, verdict: judge.judge(plan, config.thresholds) });
+    const verdict = judge.judge(plan, config.thresholds);
+    const result: ReviewResult = { query, plan, verdict };
+    if (verdict.status === 'fail') {
+      const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
+      if (suggestion) result.suggestion = suggestion;
+    }
+    results.push(result);
   }
   return results;
 }

@@ -4,13 +4,13 @@
 
 A CI tool that flags potentially slow SQL in pull requests. It pulls queries out of a PR diff (raw SQL, ORM code, query builders), runs them against a database you provide, and posts inline review comments when a query looks like it needs optimisation.
 
-Supports Postgres and SQL Server today; MySQL is planned for later. Raw-SQL extraction works now, with Eloquent, Prisma, and SQLAlchemy extractors planned.
+Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now, with Eloquent, Prisma, and SQLAlchemy extractors planned.
 
 ## 🚀 Quick Start
 
 #### Prerequisites
 - **Node.js** v20 or higher: [Download Node.js](https://nodejs.org/)
-- An **Anthropic API key** (only needed once you start running the pipeline against real PRs — not required for tests).
+- An API key for one of the [supported AI providers](#-ai-providers) — Anthropic (default) or Azure OpenAI. Only needed once you start running the pipeline against real PRs; not required for tests.
 
 ### Get the project running
 
@@ -44,6 +44,67 @@ npm run dev -- review --help
 npm run build
 ```
 
+#### 5. Review a diff or a PR
+```bash
+# Console-only dry run against a saved diff (no GitHub calls):
+node dist/cli.js review --diff some.diff
+
+# Review a real PR and post inline comments (needs an AI provider key + GITHUB_TOKEN):
+node dist/cli.js review --pr 123 --repo your-org/your-repo
+```
+
+The provider key is `ANTHROPIC_API_KEY` by default, or `AZURE_API_KEY` for Azure OpenAI — see [AI Providers](#-ai-providers).
+
+To wire this into CI, see **[TESTING_ON_GITHUB_ACTIONS.md](TESTING_ON_GITHUB_ACTIONS.md)** — a copy-paste workflow with a seeded Postgres service container.
+
+## 🤖 AI Providers
+
+Query Lens talks to LLMs through one `LlmClient` interface, so the provider is a config choice. The extractor runs on a cheap **`small`** tier; the optimizer runs on a stronger **`large`** tier. Two providers are supported today; adding a third is one `case` in [src/llm/factory.ts](src/llm/factory.ts). The "why" behind this design is in [DECISIONS.md](DECISIONS.md) §7.
+
+| Provider | `llm.provider` | API key (env) | Extra config |
+|---|---|---|---|
+| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | none — built-in model defaults |
+| Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
+
+> API keys **never** live in config — they're read from the environment. Everything else goes in `.query-lens.yml` under the `llm` key.
+
+### Anthropic (default)
+
+If you set nothing, you get Anthropic with sensible model defaults (`claude-haiku-4-5` for `small`, `claude-opus-4-8` for `large`). Just provide the key:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+To pin specific models, override them in config:
+
+```yaml
+llm:
+  provider: anthropic        # optional; this is the default
+  models:                    # optional; omit to use the defaults above
+    small: claude-haiku-4-5-20251001
+    large: claude-opus-4-8
+```
+
+### Azure OpenAI
+
+Point Query Lens at your Azure resource and your **deployment names** (not model names). Both tiers are required for Azure — there are no defaults, since deployment names are account-specific.
+
+```bash
+export AZURE_API_KEY=...
+```
+
+```yaml
+llm:
+  provider: azure
+  resourceName: my-azure-resource   # the <name> in https://<name>.openai.azure.com
+  models:
+    small: my-gpt-4o-mini-deployment
+    large: my-gpt-4o-deployment
+```
+
+The config schema validates this for you: with `provider: azure`, a missing `resourceName` or either deployment name is a load-time error.
+
 ## 🧪 Tests
 
 - `npm test` — runs the full Vitest suite once.
@@ -65,8 +126,8 @@ src/
   extract/        # regex prefilter + LLM query extractor
   db/             # DbAdapter impls (postgres, sqlserver) + plan normalizers
   judge/          # heuristic judge over normalized plans
-  report/         # Reporter interface + console reporter
-action.yml        # GitHub Action wrapper around the CLI
+  optimize/       # LLM optimizer (suggests rewrites / index hints, or nothing)
+  report/         # Reporter interface + console + GitHub PR reporters
 test/             # Vitest specs
 ```
 

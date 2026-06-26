@@ -10,8 +10,8 @@ Milestones are intentionally small. Each one ships something reviewable.
 | M1 | Diff reader + tree-sitter context | ✅ done |
 | M2 | Raw-SQL E2E against Postgres | ✅ done |
 | M3 | SQL Server adapter | ✅ done |
-| M4 | Optimizer + GitHub reporter | ⏳ next |
-| M5 | Eloquent extraction | ⏳ |
+| M4 | Optimizer + GitHub reporter | ✅ done |
+| M5 | Eloquent extraction | ⏳ next |
 | M6 | Prisma + SQLAlchemy extraction | ⏳ |
 | M7 | Polish — GH Action wrapper + README | ⏳ (README done early) |
 
@@ -41,9 +41,13 @@ package.json, tsconfig (strict + `exactOptionalPropertyTypes`), Vitest, `LlmClie
 - Generic `flattenPlan` moved to `db/plan.ts`; `createDbAdapter` factory dispatches by dialect.
 - Unit tests on a captured showplan fixture; opt-in live SQL Server integration test (`docker-compose.yml` `sqlserver` service, gated by `RUN_DB_TESTS=1`).
 
-### M4 — Optimizer + GitHub reporter
-- `optimize/optimizer.ts` — large-tier (Opus) LLM. Strict instruction to return `null` if no meaningfully better query exists.
-- `report/github.ts` — single PR review, one inline comment per failing query. **Refuses to post** if the line anchor can't be verified against the diff (precision over recall).
+### M4 — Optimizer + GitHub reporter ✅
+- `optimize/optimizer.ts` — `Optimizer` interface + `LlmOptimizer` (large-tier/Opus, `temperature: 0`, Zod schema). The schema carries a `hasSuggestion` flag; the client maps a declined or filler-only response (no rewrite, no index) to `null` so weak "consider an index" comments never reach the PR. Wired into the pipeline: runs only on failing queries, attaches `suggestion` to the `ReviewResult`.
+- `report/github-client.ts` — a thin `GithubClient` (`fetchPrDiff` + `createReview`) over `fetch`; no octokit dependency for two endpoints (see [DECISIONS.md](DECISIONS.md) §12).
+- `report/github.ts` — `GithubReporter`: one `COMMENT` review (never blocks CI), one inline comment per failing query, suggestion in a collapsed `<details>`. **Refuses to post** any comment whose `file:line` isn't an added line in the diff (precision over recall).
+- CLI `review --pr <n>` now fetches the PR diff, runs the pipeline, and posts the review. Repo from `--repo`/`GITHUB_REPOSITORY`, token from `GITHUB_TOKEN`.
+- Tests: optimizer golden test (recorded fixture) + mapping branches; `GithubReporter` against a mock client asserting exact comment path/line/side/body and the refuse-to-anchor path; e2e extended to assert the attached suggestion.
+- **This closes the first vertical: extract → analyze → judge → optimize → report.** See [TESTING_ON_GITHUB_ACTIONS.md](TESTING_ON_GITHUB_ACTIONS.md) to run it on a real PR.
 
 ### M5 — Eloquent extraction
 PHP extractor prompt variant. Tests with recorded LLM responses, no live calls.

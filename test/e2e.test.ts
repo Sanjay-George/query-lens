@@ -36,6 +36,10 @@ describe('reviewDiff end-to-end (recorded LLM, fake DB)', () => {
     expect(r.verdict.status === 'fail' && r.verdict.reasons.map((x) => x.rule)).toEqual([
       'excessive-rows-filtered',
     ]);
+    // The optimizer runs on the failing query and attaches an index suggestion.
+    expect(r.suggestion?.indexHints).toEqual([
+      'CREATE INDEX CONCURRENTLY idx_users_active ON users (active) WHERE active = true;',
+    ]);
   });
 
   it('renders a console report for the run', async () => {
