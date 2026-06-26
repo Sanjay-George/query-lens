@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-16"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.539" Build="16.0.1000.6">
+  <BatchSequence>
+    <Batch>
+      <Statements>
+        <StmtSimple StatementText="SELECT u.email FROM users u JOIN orders o ON o.user_id = u.id WHERE u.active = 1" StatementId="1" StatementType="SELECT" StatementSubTreeCost="1.234" StatementEstRows="400">
+          <QueryPlan>
+            <RelOp NodeId="0" PhysicalOp="Hash Match" LogicalOp="Inner Join" EstimateRows="400" EstimatedTotalSubtreeCost="1.234">
+              <OutputList>
+                <ColumnReference Database="[querylens]" Schema="[dbo]" Table="[u]" Column="email" />
+              </OutputList>
+              <RunTimeInformation>
+                <RunTimeCountersPerThread Thread="0" ActualRows="400" ActualElapsedms="12" ActualCPUms="10" ActualExecutions="1" />
+              </RunTimeInformation>
+              <Hash>
+                <DefinedValues />
+                <HashKeysBuild>
+                  <ColumnReference Database="[querylens]" Schema="[dbo]" Table="[u]" Column="id" />
+                </HashKeysBuild>
+                <RelOp NodeId="1" PhysicalOp="Table Scan" LogicalOp="Table Scan" EstimateRows="400" EstimateRowsRead="20000" EstimatedTotalSubtreeCost="0.5">
+                  <RunTimeInformation>
+                    <RunTimeCountersPerThread Thread="0" ActualRows="400" ActualRowsRead="20000" ActualElapsedms="8" ActualExecutions="1" />
+                  </RunTimeInformation>
+                  <TableScan Ordered="false" ForcedIndex="false">
+                    <DefinedValues />
+                    <Object Database="[querylens]" Schema="[dbo]" Table="[users]" Alias="[u]" />
+                    <Predicate>
+                      <ScalarOperator ScalarString="[querylens].[dbo].[users].[active]=(1)" />
+                    </Predicate>
+                  </TableScan>
+                </RelOp>
+                <RelOp NodeId="2" PhysicalOp="Clustered Index Seek" LogicalOp="Clustered Index Seek" EstimateRows="400" EstimatedTotalSubtreeCost="0.7">
+                  <RunTimeInformation>
+                    <RunTimeCountersPerThread Thread="0" ActualRows="400" ActualElapsedms="3" ActualExecutions="1" />
+                  </RunTimeInformation>
+                  <IndexScan Ordered="true" ForcedIndex="false">
+                    <DefinedValues />
+                    <Object Database="[querylens]" Schema="[dbo]" Table="[orders]" Index="[PK_orders]" Alias="[o]" />
+                  </IndexScan>
+                </RelOp>
+              </Hash>
+            </RelOp>
+          </QueryPlan>
+        </StmtSimple>
+      </Statements>
+    </Batch>
+  </BatchSequence>
+</ShowPlanXML>

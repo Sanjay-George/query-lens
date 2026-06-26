@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { Command } from 'commander';
 import { loadConfig, DEFAULT_CONFIG_PATH } from './config.js';
 import { createLlmClient } from './llm/factory.js';
-import { PostgresAdapter } from './db/postgres.js';
+import { createDbAdapter } from './db/factory.js';
 import { ContextResolver } from './diff/context.js';
 import { ConsoleReporter } from './report/console.js';
 import { reviewDiff } from './pipeline.js';
@@ -32,7 +32,7 @@ program
     }
 
     const diffText = await readFile(opts.diff!, 'utf8');
-    const db = new PostgresAdapter(config.db.url);
+    const db = createDbAdapter(config.db);
     try {
       const resolver = await ContextResolver.create();
       const results = await reviewDiff({

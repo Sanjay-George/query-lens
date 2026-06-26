@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { PostgresAdapter } from '../src/db/postgres.js';
-import { flattenPlan } from '../src/db/normalize-postgres.js';
+import { flattenPlan } from '../src/db/plan.js';
 import type { ExtractedQuery } from '../src/types.js';
 
 // Opt-in: needs a running Postgres (docker compose up -d postgres). Skipped by

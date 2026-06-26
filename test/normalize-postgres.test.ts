@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { normalizePostgresPlan, flattenPlan } from '../src/db/normalize-postgres.js';
+import { normalizePostgresPlan } from '../src/db/normalize-postgres.js';
+import { flattenPlan } from '../src/db/plan.js';
 
 const fixtureUrl = new URL('./fixtures/plans/seq-scan-filter.json', import.meta.url);
 

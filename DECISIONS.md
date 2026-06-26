@@ -6,7 +6,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 
 | Area | Decision |
 |---|---|
-| Databases (MVP) | Postgres, MySQL, SQL Server — all in Phase 1 |
+| Databases (MVP) | Postgres + SQL Server for the first vertical. MySQL is still a target but deferred until after that ships (see §11) |
 | ORMs (Phase 1) | Eloquent (PHP), Prisma (TS), SQLAlchemy (Py), raw SQL across all langs |
 | ORMs (Phase 2) | TypeORM, Drizzle, Sequelize, Django ORM |
 | CI host | GitHub only |
@@ -15,6 +15,7 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 | Reporting | Inline PR review comments. **Advisory check (neutral) for MVP**, never fails CI |
 | LLM SDK | Vercel AI SDK behind our own `LlmClient` interface. Providers: `@ai-sdk/anthropic` (default) and `@ai-sdk/azure` (Azure OpenAI), selected at runtime by `llm.provider` in config |
 | Tree-sitter | `web-tree-sitter@0.22.6` + `tree-sitter-wasms@0.1.13` (single WASM runtime, prebuilt grammars) |
+| DB drivers | `pg` (Postgres), `mssql` (SQL Server). SQL Server showplan XML parsed with `fast-xml-parser`. MySQL (`mysql2`) deferred — see §11 |
 
 ## Tradeoffs that were steelmanned
 
@@ -66,6 +67,18 @@ The "why" behind the architecture. If you're picking this up cold, read this bef
 - Judge flags on **any 1 failing rule** (advisory-only, so favor catching over silence — see §3); each rule is independently tunable via `.query-lens.yml` thresholds.
 - Optimizer instructed to return `null` rather than emit weak "consider an index" filler.
 - Reporter never posts a comment without a verified line anchor.
+
+### 10. Canonical plan vocabulary vs. dialect-aware judge
+**Decision:** normalizers emit a canonical `PlanNode.kind`; the judge stays dialect-agnostic. Each `DbAdapter`/normalizer is responsible for translating its native plan into the shared `NormalizedPlan` shape — that's the whole point of "Normalized".
+- Concretely: the heuristic judge keys the seq-scan rule on `kind === 'Seq Scan'` (a Postgres term we adopt as the canonical name for "reads the whole table"). SQL Server's `Table Scan` / `Clustered Index Scan` / non-clustered `Index Scan` all map to `Seq Scan`; seeks pass through unchanged.
+- "Rows removed by filter" isn't a native SQL Server field — it's derived from `RowsRead − Rows` (actuals if a STATISTICS XML plan, else the estimates), which is the same quantity Postgres reports directly.
+- **For:** one judge, one vocabulary, no dialect branching in the rules. Adding a dialect = one normalizer, zero judge changes.
+- **Against:** the canonical names lean Postgres-ish; a reader of a SQL Server plan sees `Seq Scan` where SSMS would say `Table Scan`. Acceptable — the native op is still in `plan.raw`.
+
+### 11. SQL Server: STATISTICS XML vs. SHOWPLAN_XML, deferring MySQL
+**Decision:** mirror the Postgres SELECT/write split — `STATISTICS XML` (executes, actual counters) only for read-only SELECT/WITH, `SHOWPLAN_XML` (estimate-only, never executes) otherwise. Both batches run on one pinned connection inside a rolled-back transaction.
+- The two `SET` statements are connection-scoped and must each be their own batch, so a `mssql` `Transaction` pins both to the same connection; the rollback also reverts any side effects of an executed SELECT.
+- **MySQL deferred until after the first vertical:** the goal is one complete vertical (extract → analyze → judge → optimize → report) on Postgres + SQL Server before widening DB coverage. MySQL's `EXPLAIN ANALYZE` also returns TREE-format *text*, not JSON, so actual-stat extraction needs a bespoke text parser unrelated to SQL Server's XML work — no reason to pull it forward. `mysql` stays a valid `dialect` in the config/types, but `createDbAdapter` throws until the adapter is built.
 
 ## Hidden gotchas (load-bearing)
 

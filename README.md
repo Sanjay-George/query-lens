@@ -4,7 +4,7 @@
 
 A CI tool that flags potentially slow SQL in pull requests. It pulls queries out of a PR diff (raw SQL, ORM code, query builders), runs them against a database you provide, and posts inline review comments when a query looks like it needs optimisation.
 
-Supports Postgres, MySQL, and SQL Server. Extractors planned for raw SQL, Eloquent, Prisma, and SQLAlchemy.
+Supports Postgres and SQL Server today; MySQL is planned for later. Raw-SQL extraction works now, with Eloquent, Prisma, and SQLAlchemy extractors planned.
 
 ## 🚀 Quick Start
 
@@ -50,7 +50,7 @@ npm run build
 - `npm run test:watch` — re-runs on save while you work.
 - New tests go in `test/` as `*.test.ts`. They import from `../src/...` directly; no build step required.
 
-Integration tests that hit real databases will be opt-in via env var once the DB adapters land (M3).
+Integration tests that hit real databases (Postgres, SQL Server) are opt-in: `RUN_DB_TESTS=1 npm test` after `docker compose up -d`. They're skipped by default so the suite stays fast and offline.
 
 ## 📦 Project Layout
 
@@ -59,8 +59,13 @@ src/
   cli.ts          # commander entry point
   config.ts       # .query-lens.yml loader (Zod-validated)
   types.ts        # shared domain types
+  pipeline.ts     # ties the stages together: diff → extract → analyze → judge
   llm/            # LlmClient interface + Vercel AI SDK impl
   diff/           # unified-diff parser + tree-sitter context resolver
+  extract/        # regex prefilter + LLM query extractor
+  db/             # DbAdapter impls (postgres, sqlserver) + plan normalizers
+  judge/          # heuristic judge over normalized plans
+  report/         # Reporter interface + console reporter
 action.yml        # GitHub Action wrapper around the CLI
 test/             # Vitest specs
 ```

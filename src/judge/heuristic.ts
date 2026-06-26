@@ -1,6 +1,6 @@
 import type { NormalizedPlan, PlanNode, Reason, Verdict } from '../types.js';
 import type { Thresholds } from '../config.js';
-import { flattenPlan } from '../db/normalize-postgres.js';
+import { flattenPlan } from '../db/plan.js';
 import type { Judge } from './judge.js';
 
 // Advisory-only for MVP, so a single failing rule flags the query (see

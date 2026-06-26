@@ -59,13 +59,3 @@ function toNode(pg: PgPlan): PlanNode {
   }
   return node;
 }
-
-export function flattenPlan(plan: NormalizedPlan): PlanNode[] {
-  const out: PlanNode[] = [];
-  const walk = (n: PlanNode): void => {
-    out.push(n);
-    for (const c of n.children) walk(c);
-  };
-  for (const op of plan.ops) walk(op);
-  return out;
-}

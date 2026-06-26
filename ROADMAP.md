@@ -9,8 +9,8 @@ Milestones are intentionally small. Each one ships something reviewable.
 | M0 | Scaffolding | ✅ done |
 | M1 | Diff reader + tree-sitter context | ✅ done |
 | M2 | Raw-SQL E2E against Postgres | ✅ done |
-| M3 | SQL Server + MySQL adapters | ⏳ next |
-| M4 | Optimizer + GitHub reporter | ⏳ |
+| M3 | SQL Server adapter | ✅ done |
+| M4 | Optimizer + GitHub reporter | ⏳ next |
 | M5 | Eloquent extraction | ⏳ |
 | M6 | Prisma + SQLAlchemy extraction | ⏳ |
 | M7 | Polish — GH Action wrapper + README | ⏳ (README done early) |
@@ -35,9 +35,11 @@ package.json, tsconfig (strict + `exactOptionalPropertyTypes`), Vitest, `LlmClie
 - End-to-end test on a fixture PR with recorded LLM responses + fake DB adapter; opt-in live Postgres integration test via `docker-compose.yml` (gated by `RUN_DB_TESTS=1`).
 **This was the proof-point milestone.**
 
-### M3 — SQL Server + MySQL adapters
-- `sqlserver.ts` — `SET STATISTICS XML ON` / `SET SHOWPLAN_XML`. XML → `NormalizedPlan`.
-- `mysql.ts` — `EXPLAIN FORMAT=JSON` and `EXPLAIN ANALYZE` (MySQL ≥ 8.0.18). JSON → `NormalizedPlan`.
+### M3 — SQL Server adapter ✅
+- `sqlserver.ts` `DbAdapter` — `SET STATISTICS XML ON` (actual stats) for read-only SELECT/WITH, `SET SHOWPLAN_XML ON` (estimated, never executes) for everything else. Both batches pinned to one connection via a rolled-back transaction.
+- `normalize-sqlserver.ts` — showplan XML → `NormalizedPlan` via `fast-xml-parser`. Full-table scans (`Table Scan`, `Clustered/non-clustered Index Scan`) map to the canonical `Seq Scan` kind so the heuristic judge stays dialect-agnostic; rows-removed-by-filter derived from `RowsRead − Rows`.
+- Generic `flattenPlan` moved to `db/plan.ts`; `createDbAdapter` factory dispatches by dialect.
+- Unit tests on a captured showplan fixture; opt-in live SQL Server integration test (`docker-compose.yml` `sqlserver` service, gated by `RUN_DB_TESTS=1`).
 
 ### M4 — Optimizer + GitHub reporter
 - `optimize/optimizer.ts` — large-tier (Opus) LLM. Strict instruction to return `null` if no meaningfully better query exists.
@@ -56,6 +58,7 @@ Final `action.yml`, example workflow, dogfood run on a real test repo. README do
 
 Each is one config flag or one adapter away once users ask.
 
+- MySQL adapter — deferred until after the first vertical ships on Postgres + SQL Server. `EXPLAIN FORMAT=JSON` + `EXPLAIN ANALYZE` (TREE-format *text*, so it needs its own parser); `mysql` is already a valid `dialect` but `createDbAdapter` throws until then.
 - Dashboard, history, trends
 - Auto-fix / GitHub suggestion blocks
 - Self-hosted LLM support
@@ -66,6 +69,6 @@ Each is one config flag or one adapter away once users ask.
 
 ## Phase ordering
 
-- **Phase 1 (MVP)** = M0–M4: enough to advisory-review a Postgres PR end-to-end.
+- **Phase 1 (MVP)** = M0–M4: enough to advisory-review a Postgres or SQL Server PR end-to-end. **This is the first vertical** — MySQL and further ORMs wait behind it.
 - **Phase 2** = M5–M6: ORM coverage.
-- **Phase 3** = M7 + the out-of-scope list, driven by user feedback.
+- **Phase 3** = M7 + the out-of-scope list (MySQL adapter included), driven by user feedback.
