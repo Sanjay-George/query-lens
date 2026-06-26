@@ -19,13 +19,21 @@ const EMPTY_CONTEXT: Pick<CodeContext, 'imports' | 'enclosingFunction'> = {
   enclosingFunction: null,
 };
 
+
 export interface PipelineDeps {
+  /** The unified diff text to review. */
   diffText: string;
+  /** Configuration for the review run. */
   config: Config;
+  /** The LLM client to use for query extraction and optimization. */
   llm: LlmClient;
+  /** The database adapter to use for query analysis. */
   db: DbAdapter;
+  /** The context resolver to use for extracting code context. */
   resolver: ContextResolver;
+  /** The judge to use for evaluating query plans. */
   judge?: Judge;
+  /** The optimizer to use for suggesting query improvements. */
   optimizer?: Optimizer;
   /** Reads a working-tree file for context resolution. */
   readFile: (path: string) => Promise<string>;
@@ -33,17 +41,21 @@ export interface PipelineDeps {
 
 export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
   const { config, llm, db, resolver, readFile } = deps;
+  
   const judge = deps.judge ?? new HeuristicJudge();
   const optimizer = deps.optimizer ?? new LlmOptimizer(llm);
   const files = parseUnifiedDiff(deps.diffText);
 
   const queries: ExtractedQuery[] = [];
+
+  // Review each file
   for (const file of files) {
     if (!file.newPath || file.hunks.length === 0) continue;
     const changedCode = numberedChangedCode(file);
     if (!changedCode || !hasQueryShape(changedCode)) continue;
 
     const codeContext = await resolveContext(file, resolver, readFile);
+    // Extract queries from the changed code
     const extracted = await extractQueries(llm, {
       file: file.newPath,
       dialect: config.db.dialect,
@@ -55,8 +67,11 @@ export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
     if (queries.length >= config.thresholds.maxQueriesPerPr) break;
   }
 
+  // INFO: Cap number of reviewed queries to avoid excessive LLM calls and DB analysis.
   const capped = queries.slice(0, config.thresholds.maxQueriesPerPr);
   const results: ReviewResult[] = [];
+
+  // Review: analyze, judge, and optimize if needed
   for (const query of capped) {
     const plan = await db.analyze(query);
     const verdict = judge.judge(plan, config.thresholds);

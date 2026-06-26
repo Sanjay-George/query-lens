@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfig, dialectFromUrl } from '../src/config.js';
+import { loadConfig } from '../src/config.js';
 
 describe('loadConfig', () => {
   it('parses a minimal config and applies threshold defaults', async () => {
@@ -71,21 +71,5 @@ describe('loadConfig', () => {
     const path = join(dir, '.query-lens.yml');
     await writeFile(path, `db:\n  dialect: oracle\n  url: x\n`, 'utf8');
     await expect(loadConfig('.query-lens.yml', dir)).rejects.toThrow();
-  });
-});
-
-describe('dialectFromUrl', () => {
-  it.each([
-    ['postgres://h/d', 'postgres'],
-    ['postgresql://h/d', 'postgres'],
-    ['mysql://h/d', 'mysql'],
-    ['sqlserver://h/d', 'sqlserver'],
-    ['mssql://h/d', 'sqlserver'],
-  ] as const)('maps %s to %s', (url, expected) => {
-    expect(dialectFromUrl(url)).toBe(expected);
-  });
-
-  it('returns null for unknown schemes', () => {
-    expect(dialectFromUrl('redis://h')).toBeNull();
   });
 });

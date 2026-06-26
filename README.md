@@ -55,7 +55,7 @@ node dist/cli.js review --pr 123 --repo your-org/your-repo
 
 The provider key is `ANTHROPIC_API_KEY` by default, or `AZURE_API_KEY` for Azure OpenAI — see [AI Providers](#-ai-providers).
 
-To wire this into CI, see **[TESTING_ON_GITHUB_ACTIONS.md](TESTING_ON_GITHUB_ACTIONS.md)** — a copy-paste workflow with a seeded Postgres service container.
+To test locally or wire this into CI, see **[TESTING.md](TESTING.md)**.
 
 ## 🤖 AI Providers
 
@@ -66,7 +66,7 @@ Query Lens talks to LLMs through one `LlmClient` interface, so the provider is a
 | Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | none — built-in model defaults |
 | Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
 
-> API keys **never** live in config — they're read from the environment. Everything else goes in `.query-lens.yml` under the `llm` key.
+> API keys should **never** live in config — they're read from the environment. Everything else goes in `.query-lens.yml` under the `llm` key.
 
 ### Anthropic (default)
 

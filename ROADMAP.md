@@ -47,7 +47,7 @@ package.json, tsconfig (strict + `exactOptionalPropertyTypes`), Vitest, `LlmClie
 - `report/github.ts` — `GithubReporter`: one `COMMENT` review (never blocks CI), one inline comment per failing query, suggestion in a collapsed `<details>`. **Refuses to post** any comment whose `file:line` isn't an added line in the diff (precision over recall).
 - CLI `review --pr <n>` now fetches the PR diff, runs the pipeline, and posts the review. Repo from `--repo`/`GITHUB_REPOSITORY`, token from `GITHUB_TOKEN`.
 - Tests: optimizer golden test (recorded fixture) + mapping branches; `GithubReporter` against a mock client asserting exact comment path/line/side/body and the refuse-to-anchor path; e2e extended to assert the attached suggestion.
-- **This closes the first vertical: extract → analyze → judge → optimize → report.** See [TESTING_ON_GITHUB_ACTIONS.md](TESTING_ON_GITHUB_ACTIONS.md) to run it on a real PR.
+- **This closes the first vertical: extract → analyze → judge → optimize → report.** See [TESTING.md](TESTING.md) to run it locally or on a real PR.
 
 ### M5 — Eloquent extraction
 PHP extractor prompt variant. Tests with recorded LLM responses, no live calls.

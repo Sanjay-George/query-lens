@@ -21,16 +21,17 @@ program
   .command('review')
   .description('Review the queries in a PR diff.')
   .option('-c, --config <path>', 'path to config file', DEFAULT_CONFIG_PATH)
-  .option('--diff <path>', 'path to a unified diff file (alternative to fetching from GitHub)')
+  .option('--diff <path>', 'path to a unified diff file to review (instead of PR)')
   .option('--pr <number>', 'GitHub PR number to review and comment on')
   .option('--repo <owner/name>', 'GitHub repository (defaults to $GITHUB_REPOSITORY)')
   .action(async (opts: { config: string; diff?: string; pr?: string; repo?: string }) => {
+    // load config
     const config = await loadConfig(opts.config);
     if (!opts.diff && !opts.pr) {
       throw new Error('one of --diff or --pr is required');
     }
 
-    // Resolve the diff and (for --pr) the GitHub posting target up front.
+    // Resolve the diff (either read from a file or fetched from GitHub)
     let diffText: string;
     let github: { client: GithubClient; owner: string; repo: string; pullNumber: number } | null = null;
     if (opts.pr) {
@@ -42,13 +43,16 @@ program
       if (!slug) throw new Error('set --repo <owner/name> or the GITHUB_REPOSITORY env var');
       const [owner, repo] = slug.split('/');
       if (!owner || !repo) throw new Error(`--repo must be "owner/name", got "${slug}"`);
+      
       const client = createGithubClient(requireEnv('GITHUB_TOKEN'));
-      diffText = await client.fetchPrDiff(owner, repo, pullNumber);
       github = { client, owner, repo, pullNumber };
+      
+      diffText = await client.fetchPrDiff(owner, repo, pullNumber);
     } else {
       diffText = await readFile(opts.diff!, 'utf8');
     }
 
+    // Run the review pipeline
     const db = createDbAdapter(config.db);
     try {
       const resolver = await ContextResolver.create();
@@ -60,8 +64,12 @@ program
         resolver,
         readFile: (p) => readFile(p, 'utf8'),
       });
+      
+      // Report results to console
       // eslint-disable-next-line no-console
       new ConsoleReporter().report(results);
+      
+      // Report results to GitHub if applicable
       if (github) {
         await new GithubReporter(
           github.client,

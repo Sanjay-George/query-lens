@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { z } from 'zod';
-import type { Dialect } from './types.js';
 
 const DialectSchema = z.enum(['postgres', 'mysql', 'sqlserver']);
 
@@ -25,9 +24,6 @@ const LlmModelsSchema = z.object({
   large: z.string().min(1),
 });
 
-// API keys never live in config — they come from the environment (ANTHROPIC_API_KEY
-// / AZURE_API_KEY). Azure needs a resource name and explicit per-tier deployment
-// names; Anthropic falls back to built-in model defaults.
 const LlmConfigSchema = z
   .object({
     provider: z.enum(['anthropic', 'azure']).default('anthropic'),
@@ -35,6 +31,7 @@ const LlmConfigSchema = z
     models: LlmModelsSchema.partial().optional(),
   })
   .superRefine((cfg, ctx) => {
+    // Azure-specific validation: if provider is azure, resourceName and models must be provided
     if (cfg.provider !== 'azure') return;
     if (!cfg.resourceName) {
       ctx.addIssue({
@@ -78,11 +75,4 @@ export async function loadConfig(
   const raw = await readFile(absolute, 'utf8');
   const parsed = parseYaml(raw);
   return ConfigSchema.parse(parsed);
-}
-
-export function dialectFromUrl(url: string): Dialect | null {
-  if (url.startsWith('postgres://') || url.startsWith('postgresql://')) return 'postgres';
-  if (url.startsWith('mysql://')) return 'mysql';
-  if (url.startsWith('mssql://') || url.startsWith('sqlserver://')) return 'sqlserver';
-  return null;
 }
