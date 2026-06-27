@@ -5,8 +5,8 @@ import type { ExtractedQuery, NormalizedPlan, PlanNode, Reason, Suggestion } fro
 const SuggestionSchema = z.object({
   hasSuggestion: z.boolean(),
   rationale: z.string(),
-  rewrittenSql: z.string().optional(),
-  indexHints: z.array(z.string()).optional(),
+  rewrittenSql: z.string().nullable(),
+  indexHints: z.array(z.string()).nullable(),
 });
 
 export interface OptimizeInput {
@@ -44,7 +44,7 @@ export class LlmOptimizer implements Optimizer {
 
     if (!result.hasSuggestion) return null;
 
-    const rewrittenSql = result.rewrittenSql?.trim();
+    const rewrittenSql = result.rewrittenSql?.trim() || undefined;
     const indexHints = (result.indexHints ?? []).map((h) => h.trim()).filter((h) => h.length > 0);
     // A "suggestion" with neither a rewrite nor an index is filler — drop it.
     if (!rewrittenSql && indexHints.length === 0) return null;

@@ -34,9 +34,8 @@ npm link            # registers a global `query-lens` command
 ```yaml
 db:
   dialect: sqlserver          # or "postgres"
-  url: mssql://sa:Your_Password123@localhost:1433/yourdb
+  url: "Server=localhost,1433;Database=database;User Id=username;Password=password;Encrypt=true"
   # Postgres: url: postgres://user:pass@localhost:5432/yourdb
-  # SQL Server TLS tip: append ?encrypt=false if you get a self-signed-cert error
 llm:
   provider: anthropic         # or "azure" — see AI Providers in README.md
 ```
