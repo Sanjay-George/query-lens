@@ -13,7 +13,7 @@ const DbTargetSchema = z.object({
 
 const ThresholdsSchema = z.object({
   slowQueryMs: z.number().int().positive().default(200),
-  largeTableRows: z.number().int().positive().default(10_000),
+  largeTableRows: z.number().int().positive().default(1_000_000),
   maxQueriesPerPr: z.number().int().positive().default(20),
   minExtractorConfidence: z.number().min(0).max(1).default(0.7),
   rowsFilteredRatio: z.number().min(0).max(1).default(0.9),

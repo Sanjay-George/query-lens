@@ -19,6 +19,7 @@ const SYSTEM = `You extract SQL queries from source code for a database performa
 Rules:
 - Only extract queries that appear in the ADDED/CHANGED lines provided. Ignore unchanged context.
 - Reconstruct the literal SQL string as it would be sent to the database. Resolve simple string concatenation, but DO NOT invent table or column names you cannot see.
+- Do not attempt to parse or fix the queries, even if they are invalid SQL. Just extract them as-is.
 - Replace bound parameters with literals of a plausible type ($1, ?, :name → e.g. 1, 'x') so the SQL is EXPLAIN-able.
 - Quote the exact source substring you derived each query from in "codeSpan".
 - "confidence" reflects how certain you are this is a real, complete query (0–1). Be conservative; emitting nothing is better than emitting a query you are unsure about.
