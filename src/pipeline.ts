@@ -11,8 +11,10 @@ import { changedLineRanges, parseUnifiedDiff, type DiffFile } from './diff/reade
 import { hasQueryShape } from './extract/prefilter.js';
 import { extractQueries } from './extract/extractor.js';
 import { HeuristicJudge } from './judge/heuristic.js';
+import { Rules } from './judge/rules.js';
 import { LlmOptimizer, type Optimizer } from './optimize/optimizer.js';
-import type { ExtractedQuery, ReviewResult } from './types.js';
+import type { ExtractedQuery, NormalizedPlan, ReviewResult } from './types.js';
+import chalk from 'chalk';
 
 const EMPTY_CONTEXT: Pick<CodeContext, 'imports' | 'enclosingFunction'> = {
   imports: [],
@@ -37,11 +39,13 @@ export interface PipelineDeps {
   optimizer?: Optimizer;
   /** Reads a working-tree file for context resolution. */
   readFile: (path: string) => Promise<string>;
+  /** Print per-query error details to stderr. */
+  verbose?: boolean;
 }
 
 export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
-  const { config, llm, db, resolver, readFile } = deps;
-  
+  const { config, llm, db, resolver, readFile, verbose } = deps;
+
   const judge = deps.judge ?? new HeuristicJudge();
   const optimizer = deps.optimizer ?? new LlmOptimizer(llm);
   const files = parseUnifiedDiff(deps.diffText);
@@ -67,22 +71,63 @@ export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
     if (queries.length >= config.thresholds.maxQueriesPerPr) break;
   }
 
+  // TODO: remove logs after testing
+  console.log(chalk.blue(`Extracted ${queries.length} queries from diff.`));
+  console.log(chalk.blue(JSON.stringify(queries, null, 2)));
+
+
   // INFO: Cap number of reviewed queries to avoid excessive LLM calls and DB analysis.
   const capped = queries.slice(0, config.thresholds.maxQueriesPerPr);
   const results: ReviewResult[] = [];
 
   // Review: analyze, judge, and optimize if needed
   for (const query of capped) {
-    const plan = await db.analyze(query);
-    const verdict = judge.judge(plan, config.thresholds);
-    const result: ReviewResult = { query, plan, verdict };
-    if (verdict.status === 'fail') {
-      const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
-      if (suggestion) result.suggestion = suggestion;
+    let result: ReviewResult;
+    try {
+      const plan = await analyzeQuery(db, query);
+      const verdict = judge.judge(plan, config.thresholds);
+      result = { query, plan, verdict };
+      if (verdict.status === 'fail') {
+        const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
+        if (suggestion) result.suggestion = suggestion;
+      }
+    }
+    catch (err) {
+      if (verbose) {
+        console.error(chalk.red(`Error reviewing query ${query.id}: ${errorMessage(err)}`));
+      }
+      result = {
+        query,
+        verdict: { status: 'fail', reasons: [{ rule: Rules.reviewError, detail: errorMessage(err) }] },
+      };
     }
     results.push(result);
   }
   return results;
+}
+
+async function analyzeQuery(db: DbAdapter, query: ExtractedQuery): Promise<NormalizedPlan> {
+  try {
+    return await db.analyze(query);
+  } catch (err) {
+    // Driver errors (e.g. mssql's "'NOW' is not a recognized built-in function
+    // name.") carry no context about which query failed. Pinpoint it: where the
+    // query came from, its dialect, and the SQL we sent — then preserve the
+    // original error as `cause` so the stack/driver detail isn't lost.
+    const where = `${query.file}:${query.startLine} [${query.dialect}]`;
+    throw new Error(
+      `Failed to analyze query at ${where}: ${errorMessage(err)}\n  SQL: ${singleLine(query.sql)}`,
+      { cause: err },
+    );
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function singleLine(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim();
 }
 
 function numberedChangedCode(file: DiffFile): string {

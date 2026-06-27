@@ -15,7 +15,8 @@ const program = new Command();
 program
   .name('query-lens')
   .description('Flags potentially slow SQL in pull requests.')
-  .version('0.0.1');
+  .version('0.0.1')
+  .option('-v, --verbose', 'print full error stacks to stderr', false);
 
 program
   .command('review')
@@ -63,6 +64,7 @@ program
         db,
         resolver,
         readFile: (p) => readFile(p, 'utf8'),
+        verbose: program.opts().verbose,
       });
       
       // Report results to console
@@ -90,7 +92,14 @@ function requireEnv(name: string): string {
 }
 
 program.parseAsync(process.argv).catch((err: unknown) => {
+  const verbose = program.opts().verbose || process.env.QUERY_LENS_DEBUG;
   // eslint-disable-next-line no-console
-  console.error(err instanceof Error ? err.message : err);
+  if (verbose) {
+    // util.inspect (what console.error uses for objects) prints the stack and
+    // walks the `cause` chain, surfacing the underlying driver error.
+    console.error(err);
+  } else {
+    console.error(err instanceof Error ? err.message : err);
+  }
   process.exit(1);
 });
