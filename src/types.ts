@@ -1,3 +1,5 @@
+import type { RuleName } from './judge/rules.js';
+
 export type Dialect = 'postgres' | 'mysql' | 'sqlserver';
 
 export type QuerySource =
@@ -42,7 +44,7 @@ export interface NormalizedPlan {
 }
 
 export interface Reason {
-  rule: string;
+  rule: RuleName;
   detail: string;
 }
 

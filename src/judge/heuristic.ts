@@ -2,6 +2,7 @@ import type { NormalizedPlan, PlanNode, Reason, Verdict } from '../types.js';
 import type { Thresholds } from '../config.js';
 import { flattenPlan } from '../db/plan.js';
 import type { Judge } from './judge.js';
+import { Rules } from './rules.js';
 
 // Advisory-only for MVP, so a single failing rule flags the query (see
 // DECISIONS.md §3/§9). Each rule is independent and contributes one Reason.
@@ -30,7 +31,7 @@ function seqScanOnLargeTable(nodes: PlanNode[], largeTableRows: number): Reason 
     if (rows !== undefined && rows >= largeTableRows) {
       const where = n.table ? ` on "${n.table}"` : '';
       return {
-        rule: 'seq-scan-on-large-table',
+        rule: Rules.seqScanOnLargeTable,
         detail: `Sequential scan${where} over ${rows} rows (threshold ${largeTableRows}).`,
       };
     }
@@ -41,7 +42,7 @@ function seqScanOnLargeTable(nodes: PlanNode[], largeTableRows: number): Reason 
 function slowExecution(plan: NormalizedPlan, slowQueryMs: number): Reason | null {
   if (plan.actualTimeMs !== undefined && plan.actualTimeMs >= slowQueryMs) {
     return {
-      rule: 'slow-execution',
+      rule: Rules.slowExecution,
       detail: `Execution time ${plan.actualTimeMs.toFixed(1)}ms (threshold ${slowQueryMs}ms).`,
     };
   }
@@ -58,7 +59,7 @@ function excessiveRowsFiltered(nodes: PlanNode[], ratioThreshold: number): Reaso
     const ratio = removed / scanned;
     if (ratio >= ratioThreshold) {
       return {
-        rule: 'excessive-rows-filtered',
+        rule: Rules.excessiveRowsFiltered,
         detail: `Filter discarded ${removed}/${scanned} rows scanned (${(ratio * 100).toFixed(0)}%, threshold ${(ratioThreshold * 100).toFixed(0)}%).`,
       };
     }
