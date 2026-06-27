@@ -143,6 +143,56 @@ Each subsystem is abstracted behind a small interface (`LlmClient`, `DbAdapter`,
 | `npm run build` | Compile to `dist/` |
 | `npm run dev -- <args>` | Run the CLI from source |
 
+## ⚙️ Configuration Reference
+
+Configuration lives in `.query-lens.yml` (override the path with `review --config <path>`). The file is validated by a Zod schema at load time — unknown keys and bad types are load-time errors. API keys are **never** read from config; they come from the environment (see [AI Providers](#-ai-providers)).
+
+Minimal config — only `db` is required:
+
+```yaml
+db:
+  dialect: postgres
+  url: postgres://user:pass@localhost:5432/mydb
+```
+
+### `db` *(required)*
+
+The database Query Lens runs `EXPLAIN` against.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `db.dialect` | `postgres` \| `mysql` \| `sqlserver` | — *(required)* | Which adapter/plan normalizer to use. |
+| `db.url` | string | — *(required)* | Connection string for the target database. |
+
+### `thresholds` *(optional)*
+
+Tuning knobs for the judge and the run as a whole. Omit the whole block to accept all defaults.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `thresholds.slowQueryMs` | int > 0 | `200` | Actual execution time at or above this (ms) is flagged as slow. |
+| `thresholds.largeTableRows` | int > 0 | `10000` | A sequential scan over at least this many rows is flagged. |
+| `thresholds.maxQueriesPerPr` | int > 0 | `20` | Cap on queries reviewed per PR, to bound LLM and DB cost. |
+| `thresholds.minExtractorConfidence` | 0–1 | `0.7` | Drop extracted queries the LLM is less confident about than this. |
+| `thresholds.rowsFilteredRatio` | 0–1 | `0.9` | Fail when this fraction of scanned rows is filtered out (a sign of a missing index). |
+
+### `llm` *(optional)*
+
+Which provider and models to use. Defaults to Anthropic with built-in model defaults. See [AI Providers](#-ai-providers) for full provider setup and examples.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `llm.provider` | `anthropic` \| `azure` | `anthropic` | LLM provider. |
+| `llm.resourceName` | string | — | Azure resource name. **Required when `provider: azure`.** |
+| `llm.models.small` | string | provider default | Model/deployment for the cheap extractor tier. Required for Azure. |
+| `llm.models.large` | string | provider default | Model/deployment for the stronger optimizer tier. Required for Azure. |
+
+### `ignore` *(optional)*
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `ignore` | string[] | `[]` | Glob patterns for files to skip. Reserved — accepted by the schema but not yet wired into the pipeline. |
+
 ## 🤝 Contributing
 
 - [ROADMAP.md](ROADMAP.md) — milestones (`M0`–`M7`) and what's in/out of scope.
