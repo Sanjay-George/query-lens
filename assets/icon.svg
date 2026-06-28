@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Query Lens">
+  <title>Query Lens</title>
+  <rect width="256" height="256" rx="56" fill="#2C415F"/>
+  <rect x="74" y="89" width="22" height="8" rx="4" fill="#93C5FD"/>
+  <rect x="102" y="89" width="34" height="8" rx="4" fill="#ffffff"/>
+  <rect x="74" y="105" width="16" height="8" rx="4" fill="#93C5FD"/>
+  <rect x="96" y="105" width="34" height="8" rx="4" fill="#FBBF24"/>
+  <rect x="74" y="121" width="20" height="8" rx="4" fill="#93C5FD"/>
+  <rect x="100" y="121" width="26" height="8" rx="4" fill="#ffffff"/>
+  <circle cx="108" cy="108" r="64" fill="none" stroke="#ffffff" stroke-width="16"/>
+  <line x1="150" y1="150" x2="196" y2="196" stroke="#ffffff" stroke-width="18" stroke-linecap="round"/>
+</svg>

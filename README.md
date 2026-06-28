@@ -1,4 +1,8 @@
-# Query Lens
+<p align="center">
+  <img src="assets/icon.svg" alt="Query Lens logo" width="96" height="96" />
+</p>
+
+<h1 align="center">Query Lens</h1>
 
 > ⚠️ Early-stage WIP
 
