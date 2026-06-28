@@ -1,8 +1,9 @@
-<p align="center">
-  <img src="assets/icon.svg" alt="Query Lens logo" width="96" height="96" />
+<p align="left" style="display:flex;align-items:center;gap:12px">
+  <img src="assets/icon.svg" alt="Query Lens logo" width="32" height="32" />
+  <span style="font-size:2em;font-weight:bold">Query Lens</span>
 </p>
 
-<h1 align="center">Query Lens</h1>
+
 
 > ⚠️ Early-stage WIP
 
