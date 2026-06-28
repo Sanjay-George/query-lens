@@ -22,7 +22,7 @@ Small milestones, each shipping something reviewable.
 
 **M1** — unified-diff parser → `DiffFile[]`; tree-sitter `ContextResolver` (TS/TSX/Python/PHP) for enclosing function + imports. `web-tree-sitter@0.22.6` pinned to grammar ABI; `createRequire` load.
 
-**M2** — regex prefilter; small-tier LLM extractor → `ExtractedQuery[]` (`confidence`, `codeSpan`); `postgres.ts` adapter (`EXPLAIN ANALYZE` in a rolled-back txn, plan-only for writes); plan normalizer; heuristic judge (`seq-scan-on-large-table`, `slow-execution`, `excessive-rows-filtered`, any 1 flags); console reporter. The proof-point.
+**M2** — regex prefilter; large-tier LLM extractor → `ExtractedQuery[]` (`confidence`, `codeSpan`); `postgres.ts` adapter (`EXPLAIN ANALYZE` in a rolled-back txn, plan-only for writes); plan normalizer; heuristic judge (`seq-scan-on-large-table`, `slow-execution`, `excessive-rows-filtered`, any 1 flags); console reporter. The proof-point.
 
 **M3** — `sqlserver.ts` (`STATISTICS XML` for reads, `SHOWPLAN_XML` otherwise, pinned to one rolled-back txn); showplan XML → `NormalizedPlan` (scans map to canonical `Seq Scan`). `flattenPlan` in `db/plan.ts`; `createDbAdapter` dispatches by dialect.
 
@@ -30,7 +30,7 @@ Small milestones, each shipping something reviewable.
 
 **M4.5 — LLM judge + composite judge (MVP).** The baseline (`src/baseline/`) showed a heuristic-only judge isn't enough — it needs a wired DB and misses problems an engineer spots on sight. Add two judges behind the existing `Judge` interface:
 - **Heuristic** — rule-based, plan-driven; abstains without a plan; no severity.
-- **LLM** (`judge/llm.ts`, large tier) — emits severity + explanations + a concrete suggestion, tuned to the dialect; runs with or without a plan (dialect still required).
+- **LLM** (`judge/llm.ts`, small tier) — emits severity + explanations + a concrete suggestion, tuned to the dialect; runs with or without a plan (dialect still required).
 - **Composite** (`judge/composite.ts`) — runs both, fails if either fails, concatenates reasons, severity = max(LLM severity, "high" floor when a heuristic rule trips), suggestion from the LLM judge.
 - `Verdict.fail` gains optional `severity` + `suggestion`; reporter renders both.
 - **Optimizer shelved** — the LLM judge produces the suggestion now; code kept in `src/optimize/`, unwired.
