@@ -24,7 +24,7 @@ The "why" behind the architecture. Read before changing anything load-bearing.
 
 **3. Heuristic vs. LLM judge → both (see §13).** Heuristic judge: code-based, inputs from the plan (`Seq Scan` on large tables, `actual_time_ms`, rows-removed-by-filter ratio), thresholds in config, any 1 rule flags. Deterministic and free, but only fires with a wired DB and misses what an engineer reads off the SQL — §13 closes that gap.
 
-**4. Model tiers.** Two: Haiku (`small`) for extraction (every PR), Opus (`large`) for the LLM judge (the high-value reasoning step, also produces suggestions). The `large` tier moved from the shelved optimizer to the judge — one fewer LLM stage.
+**4. Model tiers.** Two: `small` (eg: Haiku, gpt-x-mini) for simpler tasks (eg: judging a query), and `large` (eg: Opus, gpt-x) for more complex tasks (eg: extracting queries).
 
 **5. Inline comments vs. dashboard.** Inline only: one review/PR, one comment per failing query, suggestion in a `<details>`. Refuse to post if the line can't be anchored to the diff.
 
@@ -43,23 +43,17 @@ The "why" behind the architecture. Read before changing anything load-bearing.
 **12. GitHub: thin `fetch` client vs. octokit.** Hand-rolled `GithubClient` over two endpoints (`GET pulls/:n.diff`, `POST pulls/:n/reviews`). octokit's extras buy nothing here. The interface is the test seam; `event: COMMENT` enforces the advisory stance.
 
 **13. Two judges + a composite; optimizer folded in.** Keep the heuristic judge, add an LLM judge, merge in `CompositeJudge`. All three implement `judge(JudgeInput): Promise<Verdict>`, so the pipeline is agnostic.
-- *Why:* the baseline (`src/baseline/`) proved heuristic-only has a ceiling — it needs a wired DB and misses on-sight problems (N+1, `LIKE '%x%'`, unbounded results). The LLM judge works with or without a plan; **dialect required, live DB not**, and it tunes suggestions to the dialect.
+- *Why:* Baseline comparisons (with simple LLM reviews) proved heuristic-only has a ceiling — it needs a wired DB and misses on-sight problems (N+1, `LIKE '%x%'`, unbounded results). The LLM judge works with or without a plan; **dialect required, live DB not**, and it tunes suggestions to the dialect.
 - *Division of labor:* heuristic emits reasons, no severity. LLM judge emits severity (critical/high/medium/low) + explanations + suggestion. Composite: fail if either fails; reasons concatenated; severity = max(LLM severity, "high" floor when a heuristic rule trips — a tripped rule is real-plan evidence); suggestion from the LLM judge.
 - *Optimizer shelved:* the LLM judge already proposes the rewrite/index, so a separate Opus optimizer was a duplicate pass. Code kept in `src/optimize/`, unwired.
 - *Verdict owns the suggestion:* criticality and fix are one judgment; the `fail` verdict carries `severity` + `suggestion` next to `reasons`.
-- *Risks:* per-PR variance and Opus cost per flagged query (mitigated by §6/§9); the severity-merge rule and the `Composite` name are provisional.
+- *Risks:* per-PR variance and LLM cost per flagged query (mitigated by §6/§9 and using small LLM for judging); the severity-merge rule and the `Composite` name are provisional.
 
 ## Hidden gotchas (load-bearing)
 
 - **`exactOptionalPropertyTypes: true`** — can't pass `system: undefined` to the SDK; spread-only-when-defined (see [vercel.ts](src/llm/vercel.ts)).
 - **`web-tree-sitter@0.22.6`** — newer versions fail to load the pinned prebuilt grammars (`getDylinkMetadata`). Don't upgrade either in isolation.
 - **`createRequire` for `web-tree-sitter`** — the ESM default import lacks `Parser.Language` under Vitest; the CJS form works in both. See [context.ts](src/diff/context.ts).
-
-## Costs (MVP, per PR)
-
-- Extractor (Haiku): ~1 call per changed file with queries. Pennies.
-- Heuristic judge: free.
-- LLM judge (Opus): one call per extracted query (capped by `maxQueriesPerPr`). Dominant cost — the confidence filter and cap are the levers.
 
 ## Not designing for
 
