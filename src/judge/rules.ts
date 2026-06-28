@@ -20,12 +20,8 @@ export const Rules = {
    */
   excessiveRowsFiltered: 'excessive-rows-filtered',
 
-  /**
-   * Not a query problem: the review itself failed (e.g. the database refused to
-   * EXPLAIN the query). Reported as a failing reason so a broken review is never
-   * silently passed off as a clean one.
-   */
-  reviewError: 'review-error',
+  /** A finding from the LLM judge; not tied to a structural rule, ranked via the verdict's severity. */
+  llmReview: 'llm-review',
 } as const;
 
 export type RuleName = (typeof Rules)[keyof typeof Rules];

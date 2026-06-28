@@ -48,9 +48,8 @@ export interface Reason {
   detail: string;
 }
 
-export type Verdict =
-  | { status: 'pass' }
-  | { status: 'fail'; reasons: Reason[] };
+/** Production-impact criticality, assigned by the LLM judge (and the composite). */
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
 
 export interface Suggestion {
   rationale: string;
@@ -58,9 +57,21 @@ export interface Suggestion {
   indexHints?: string[];
 }
 
+// Unified output of every Judge. Heuristic emits only reasons; the LLM judge
+// adds severity + suggestion; the composite carries whatever both produced.
+export type Verdict =
+  | { status: 'pass' }
+  | {
+      status: 'fail';
+      reasons: Reason[];
+      /** Overall criticality. Absent on heuristic-only verdicts. */
+      severity?: Severity;
+      /** A concrete fix, when a judge can offer one. */
+      suggestion?: Suggestion;
+    };
+
 export interface ReviewResult {
   query: ExtractedQuery;
   plan?: NormalizedPlan;
   verdict: Verdict;
-  suggestion?: Suggestion;
 }

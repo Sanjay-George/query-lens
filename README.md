@@ -2,200 +2,93 @@
 
 > ⚠️ Early-stage WIP
 
-A CI tool that flags potentially slow SQL in pull requests. It pulls queries out of a PR diff (raw SQL, ORM code, query builders), runs them against a database you provide, and posts inline review comments when a query looks like it needs optimisation.
+A CI tool that flags potentially slow SQL in pull requests. It pulls queries out of a PR diff (raw SQL, ORM code, query builders), judges them for performance — with a heuristic plan check when a DB is wired and an LLM acting as a senior DB engineer — and posts inline review comments.
 
-Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now, with Eloquent, Prisma, and SQLAlchemy extractors planned.
+Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now; Eloquent, Prisma, and SQLAlchemy planned.
 
-## 🚀 Quick Start
+## Quick start
 
-#### Prerequisites
-- **Node.js** v20 or higher: [Download Node.js](https://nodejs.org/)
-- An API key for one of the [supported AI providers](#-ai-providers) — Anthropic (default) or Azure OpenAI. Only needed once you start running the pipeline against real PRs; not required for tests.
+Requires Node 20+ and an AI provider key (Anthropic default, or Azure OpenAI) — only needed when running against real PRs.
 
-### Get the project running
-
-#### 1. Clone the repo
-```bash
-git clone <your-fork-url> query-lens
-cd query-lens
-```
-
-#### 2. Install dependencies
 ```bash
 npm install
-```
-
-#### 3. Typecheck and run the tests
-```bash
 npm run typecheck
-npm test
-```
 
-If both pass, you're set. That's it.
-
-#### 4. Run the CLI locally
-```bash
+# Run the CLI from source (no build needed):
 npm run dev -- review --help
-```
 
-`npm run dev` uses `tsx` so you don't need to build first. To produce a real `dist/` bundle for the GitHub Action:
+# Console-only review of a saved diff:
+node dist/cli.js review --diff some.diff        # after `npm run build`
 
-```bash
-npm run build
-```
-
-#### 5. Review a diff or a PR
-```bash
-# Console-only dry run against a saved diff (no GitHub calls):
-node dist/cli.js review --diff some.diff
-
-# Review a real PR and post inline comments (needs an AI provider key + GITHUB_TOKEN):
+# Review a real PR and post comments (needs provider key + GITHUB_TOKEN):
 node dist/cli.js review --pr 123 --repo your-org/your-repo
 ```
 
-The provider key is `ANTHROPIC_API_KEY` by default, or `AZURE_API_KEY` for Azure OpenAI — see [AI Providers](#-ai-providers).
+See **[TESTING.md](TESTING.md)** for local + CI setup.
 
-To test locally or wire this into CI, see **[TESTING.md](TESTING.md)**.
+## AI Providers
 
-## 🤖 AI Providers
+One `LlmClient` interface, provider chosen in config. The extractor runs on a cheap `small` tier, the LLM judge on a stronger `large` tier. Keys come from the **environment, never config**. Adding a provider = one `case` in [factory.ts](src/llm/factory.ts) (DECISIONS §7).
 
-Query Lens talks to LLMs through one `LlmClient` interface, so the provider is a config choice. The extractor runs on a cheap **`small`** tier; the optimizer runs on a stronger **`large`** tier. Two providers are supported today; adding a third is one `case` in [src/llm/factory.ts](src/llm/factory.ts). The "why" behind this design is in [DECISIONS.md](DECISIONS.md) §7.
-
-| Provider | `llm.provider` | API key (env) | Extra config |
+| Provider | `llm.provider` | Key (env) | Extra |
 |---|---|---|---|
-| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | none — built-in model defaults |
+| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | none |
 | Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
 
-> API keys should **never** live in config — they're read from the environment. Everything else goes in `.query-lens.yml` under the `llm` key.
-
-### Anthropic (default)
-
-If you set nothing, you get Anthropic with sensible model defaults (`claude-haiku-4-5` for `small`, `claude-opus-4-8` for `large`). Just provide the key:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-To pin specific models, override them in config:
-
 ```yaml
+# Anthropic — defaults to claude-haiku-4-5 (small) / claude-opus-4-8 (large)
 llm:
-  provider: anthropic        # optional; this is the default
-  models:                    # optional; omit to use the defaults above
+  provider: anthropic
+  models:               # optional
     small: claude-haiku-4-5-20251001
     large: claude-opus-4-8
-```
 
-### Azure OpenAI
-
-Point Query Lens at your Azure resource and your **deployment names** (not model names). Both tiers are required for Azure — there are no defaults, since deployment names are account-specific.
-
-```bash
-export AZURE_API_KEY=...
-```
-
-```yaml
+# Azure — deployment names required (no defaults)
 llm:
   provider: azure
-  resourceName: my-azure-resource   # the <name> in https://<name>.openai.azure.com
+  resourceName: my-azure-resource
   models:
     small: my-gpt-4o-mini-deployment
     large: my-gpt-4o-deployment
 ```
 
-The config schema validates this for you: with `provider: azure`, a missing `resourceName` or either deployment name is a load-time error.
+## Configuration
 
-## 🧪 Tests
-
-- `npm test` — runs the full Vitest suite once.
-- `npm run test:watch` — re-runs on save while you work.
-- New tests go in `test/` as `*.test.ts`. They import from `../src/...` directly; no build step required.
-
-Integration tests that hit real databases (Postgres, SQL Server) are opt-in: `RUN_DB_TESTS=1 npm test` after `docker compose up -d`. They're skipped by default so the suite stays fast and offline.
-
-## 📦 Project Layout
-
-```
-src/
-  cli.ts          # commander entry point
-  config.ts       # .query-lens.yml loader (Zod-validated)
-  types.ts        # shared domain types
-  pipeline.ts     # ties the stages together: diff → extract → analyze → judge
-  llm/            # LlmClient interface + Vercel AI SDK impl
-  diff/           # unified-diff parser + tree-sitter context resolver
-  extract/        # regex prefilter + LLM query extractor
-  db/             # DbAdapter impls (postgres, sqlserver) + plan normalizers
-  judge/          # heuristic judge over normalized plans
-  optimize/       # LLM optimizer (suggests rewrites / index hints, or nothing)
-  report/         # Reporter interface + console + GitHub PR reporters
-test/             # Vitest specs
-```
-
-Each subsystem is abstracted behind a small interface (`LlmClient`, `DbAdapter`, `Judge`, `Optimizer`, `Reporter`) so implementations can be swapped easily.
-
-## 🛠️ Useful Commands
-
-| Command | What it does |
-|---|---|
-| `npm test` | Run all tests |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run typecheck` | TypeScript check, no emit |
-| `npm run build` | Compile to `dist/` |
-| `npm run dev -- <args>` | Run the CLI from source |
-
-## ⚙️ Configuration Reference
-
-Configuration lives in `.query-lens.yml` (override the path with `review --config <path>`). The file is validated by a Zod schema at load time — unknown keys and bad types are load-time errors. API keys are **never** read from config; they come from the environment (see [AI Providers](#-ai-providers)).
-
-Minimal config — only `db` is required:
+`.query-lens.yml` (override with `--config <path>`), Zod-validated at load — unknown keys and bad types are errors. Only `db` is required:
 
 ```yaml
 db:
-  dialect: postgres
+  dialect: postgres                                   # postgres | sqlserver (mysql planned)
   url: postgres://user:pass@localhost:5432/mydb
 ```
 
-### `db` *(required)*
+Optional blocks:
 
-The database Query Lens runs `EXPLAIN` against.
+| Key | Default | Description |
+|---|---|---|
+| `thresholds.slowQueryMs` | `200` | Execution time at/above this (ms) is flagged. |
+| `thresholds.largeTableRows` | `1000000` | Seq scan over at least this many rows is flagged. |
+| `thresholds.maxQueriesPerPr` | `20` | Cap on queries reviewed per PR (bounds LLM/DB cost). |
+| `thresholds.minExtractorConfidence` | `0.7` | Drop extracted queries below this confidence. |
+| `thresholds.rowsFilteredRatio` | `0.9` | Flag when this fraction of scanned rows is filtered out. |
+| `llm.*` | — | Provider/models (see above). |
+| `ignore` | `[]` | Glob patterns to skip (accepted by schema; not yet wired). |
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `db.dialect` | `postgres` \| `mysql` \| `sqlserver` | — *(required)* | Which adapter/plan normalizer to use. |
-| `db.url` | string | — *(required)* | Connection string for the target database. |
+## Layout
 
-### `thresholds` *(optional)*
+```
+src/
+  cli.ts        commander entry point
+  config.ts     .query-lens.yml loader (Zod)
+  pipeline.ts   diff → extract → analyze → judge → report
+  llm/          LlmClient + Vercel AI SDK impl
+  diff/         unified-diff parser + tree-sitter context
+  extract/      regex prefilter + LLM extractor
+  db/           DbAdapter impls + plan normalizers
+  judge/        heuristic + LLM + composite judges
+  optimize/     (shelved — superseded by the LLM judge)
+  report/       console + GitHub PR reporters
+  baseline/     standalone AI-only reviewer (comparison benchmark; not used by the pipeline)
+```
 
-Tuning knobs for the judge and the run as a whole. Omit the whole block to accept all defaults.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `thresholds.slowQueryMs` | int > 0 | `200` | Actual execution time at or above this (ms) is flagged as slow. |
-| `thresholds.largeTableRows` | int > 0 | `10000` | A sequential scan over at least this many rows is flagged. |
-| `thresholds.maxQueriesPerPr` | int > 0 | `20` | Cap on queries reviewed per PR, to bound LLM and DB cost. |
-| `thresholds.minExtractorConfidence` | 0–1 | `0.7` | Drop extracted queries the LLM is less confident about than this. |
-| `thresholds.rowsFilteredRatio` | 0–1 | `0.9` | Fail when this fraction of scanned rows is filtered out (a sign of a missing index). |
-
-### `llm` *(optional)*
-
-Which provider and models to use. Defaults to Anthropic with built-in model defaults. See [AI Providers](#-ai-providers) for full provider setup and examples.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `llm.provider` | `anthropic` \| `azure` | `anthropic` | LLM provider. |
-| `llm.resourceName` | string | — | Azure resource name. **Required when `provider: azure`.** |
-| `llm.models.small` | string | provider default | Model/deployment for the cheap extractor tier. Required for Azure. |
-| `llm.models.large` | string | provider default | Model/deployment for the stronger optimizer tier. Required for Azure. |
-
-### `ignore` *(optional)*
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `ignore` | string[] | `[]` | Glob patterns for files to skip. Reserved — accepted by the schema but not yet wired into the pipeline. |
-
-## 🤝 Contributing
-
-- [ROADMAP.md](ROADMAP.md) — milestones (`M0`–`M7`) and what's in/out of scope.
-- [DECISIONS.md](DECISIONS.md) — the "why" behind the architecture. Read this before changing anything load-bearing.
-
-Pick a milestone, send a PR. Keep the design KISS — interfaces over abstractions, no speculative features.
+See [ROADMAP.md](ROADMAP.md) for milestones and [DECISIONS.md](DECISIONS.md) for the "why".

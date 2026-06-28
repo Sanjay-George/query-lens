@@ -40,7 +40,7 @@ export async function extractQueries(
 ): Promise<ExtractedQuery[]> {
   const prompt = buildPrompt(input);
   const result = await llm.generate({
-    tier: 'small',
+    tier: 'large',
     temperature: 0,
     system: SYSTEM,
     prompt,

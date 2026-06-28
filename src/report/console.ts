@@ -12,11 +12,16 @@ export class ConsoleReporter implements Reporter {
 
     for (const r of failed) {
       // verdict.status === 'fail' is guaranteed by the filter above.
-      const reasons = r.verdict.status === 'fail' ? r.verdict.reasons : [];
-      this.sink(`✗ ${r.query.file}:${r.query.startLine}`);
+      const verdict = r.verdict.status === 'fail' ? r.verdict : null;
+      const reasons = verdict?.reasons ?? [];
+      const sev = verdict?.severity ? `[${verdict.severity.toUpperCase()}] ` : '';
+      this.sink(`✗ ${sev}${r.query.file}:${r.query.startLine}`);
       this.sink(`  ${r.query.sql}`);
       for (const reason of reasons) {
         this.sink(`  - [${reason.rule}] ${reason.detail}`);
+      }
+      if (verdict?.suggestion) {
+        this.sink(`  ↳ suggestion: ${verdict.suggestion.rationale}`);
       }
       this.sink('');
     }

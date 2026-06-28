@@ -76,9 +76,13 @@ function commentableAnchors(diffText: string): Set<string> {
 }
 
 function renderBody(r: ReviewResult): string {
-  const reasons = r.verdict.status === 'fail' ? r.verdict.reasons : [];
+  const verdict = r.verdict.status === 'fail' ? r.verdict : null;
+  const reasons = verdict?.reasons ?? [];
+  const heading = verdict?.severity
+    ? `**Query Lens — potential slow query (${verdict.severity.toUpperCase()})**`
+    : '**Query Lens — potential slow query**';
   const lines = [
-    '**Query Lens — potential slow query**',
+    heading,
     '',
     '```sql',
     r.query.sql,
@@ -86,8 +90,8 @@ function renderBody(r: ReviewResult): string {
     '',
     ...reasons.map((reason) => `- \`${reason.rule}\`: ${reason.detail}`),
   ];
-  if (r.suggestion) {
-    lines.push('', renderSuggestion(r.suggestion));
+  if (verdict?.suggestion) {
+    lines.push('', renderSuggestion(verdict.suggestion));
   }
   lines.push('', '_Advisory only — Query Lens never fails the build._');
   return lines.join('\n');

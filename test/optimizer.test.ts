@@ -31,7 +31,11 @@ async function seqScanInput(): Promise<OptimizeInput> {
     ),
   );
   const plan = normalizePostgresPlan(json);
-  const verdict = new HeuristicJudge().judge(plan, E2E_CONFIG.thresholds);
+  const verdict = await new HeuristicJudge().judge({
+    query: QUERY,
+    plan,
+    thresholds: E2E_CONFIG.thresholds,
+  });
   if (verdict.status !== 'fail') throw new Error('fixture plan should fail the judge');
   return { query: QUERY, plan, reasons: verdict.reasons };
 }

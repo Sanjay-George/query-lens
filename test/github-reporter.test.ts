@@ -40,8 +40,8 @@ function failing(startLine: number, suggestion?: Suggestion): ReviewResult {
     verdict: {
       status: 'fail',
       reasons: [{ rule: 'excessive-rows-filtered', detail: 'Filter discarded 19600/20000 rows scanned (98%).' }],
+      ...(suggestion ? { suggestion } : {}),
     },
-    ...(suggestion ? { suggestion } : {}),
   };
 }
 

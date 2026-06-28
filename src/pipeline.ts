@@ -11,8 +11,10 @@ import { changedLineRanges, parseUnifiedDiff, type DiffFile } from './diff/reade
 import { hasQueryShape } from './extract/prefilter.js';
 import { extractQueries } from './extract/extractor.js';
 import { HeuristicJudge } from './judge/heuristic.js';
+import { LlmJudge } from './judge/llm.js';
+import { CompositeJudge } from './judge/composite.js';
 import { Rules } from './judge/rules.js';
-import { LlmOptimizer, type Optimizer } from './optimize/optimizer.js';
+// Optimizer shelved — the LLM judge produces suggestions itself (DECISIONS §13).
 import type { ExtractedQuery, NormalizedPlan, ReviewResult } from './types.js';
 import chalk from 'chalk';
 
@@ -33,10 +35,8 @@ export interface PipelineDeps {
   db: DbAdapter;
   /** The context resolver to use for extracting code context. */
   resolver: ContextResolver;
-  /** The judge to use for evaluating query plans. */
+  /** The judge to use for evaluating queries. Defaults to the composite (heuristic + LLM). */
   judge?: Judge;
-  /** The optimizer to use for suggesting query improvements. */
-  optimizer?: Optimizer;
   /** Reads a working-tree file for context resolution. */
   readFile: (path: string) => Promise<string>;
   /** Print per-query error details to stderr. */
@@ -46,8 +46,7 @@ export interface PipelineDeps {
 export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
   const { config, llm, db, resolver, readFile, verbose } = deps;
 
-  const judge = deps.judge ?? new HeuristicJudge();
-  const optimizer = deps.optimizer ?? new LlmOptimizer(llm);
+  const judge = deps.judge ?? new CompositeJudge(new HeuristicJudge(), new LlmJudge(llm));
   const files = parseUnifiedDiff(deps.diffText);
 
   const queries: ExtractedQuery[] = [];
@@ -80,29 +79,27 @@ export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
   const capped = queries.slice(0, config.thresholds.maxQueriesPerPr);
   const results: ReviewResult[] = [];
 
-  // Review: analyze, judge, and optimize if needed
+  // Review: analyze (best-effort) then judge.
   for (const query of capped) {
     let result: ReviewResult;
+    // A plan sharpens the judge but isn't required (DECISIONS §13).
+    let plan: NormalizedPlan | undefined;
     try {
-      const plan = await analyzeQuery(db, query);
-      const verdict = judge.judge(plan, config.thresholds);
-      result = { query, plan, verdict };
-
-      // Pushing optimizer to later milestones.
-      // if (verdict.status === 'fail') {
-      //   const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
-      //   if (suggestion) result.suggestion = suggestion;
-      // }
-    }
-    catch (err) {
+      plan = await analyzeQuery(db, query);
+    } catch (err) {
       if (verbose) {
-        console.error(chalk.red(`Error reviewing query ${query.id}: ${errorMessage(err)}`));
+        console.warn(
+          chalk.yellow(`No plan for query ${query.id}: ${errorMessage(err)} — judging without it.`),
+        );
       }
-      result = {
-        query,
-        verdict: { status: 'fail', reasons: [{ rule: Rules.reviewError, detail: errorMessage(err) }] },
-      };
     }
+    const verdict = await judge.judge({
+      query,
+      thresholds: config.thresholds,
+      ...(plan ? { plan } : {}),
+    });
+    result = { query, verdict, ...(plan ? { plan } : {}) };
+
     results.push(result);
   }
   return results;

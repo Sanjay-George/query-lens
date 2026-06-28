@@ -1,13 +1,16 @@
 import type { NormalizedPlan, PlanNode, Reason, Verdict } from '../types.js';
 import type { Thresholds } from '../config.js';
 import { flattenPlan } from '../db/plan.js';
-import type { Judge } from './judge.js';
+import type { Judge, JudgeInput } from './judge.js';
 import { Rules } from './rules.js';
 
-// Advisory-only for MVP, so a single failing rule flags the query (see
-// DECISIONS.md §3/§9). Each rule is independent and contributes one Reason.
+/**
+ * Heuristic judge that evaluates query plans against a set of configurable thresholds.
+ * Execution plan is mandatory for this judge; if no plan is provided, it returns a "pass" verdict to defer to the LLM judge.
+ */
 export class HeuristicJudge implements Judge {
-  judge(plan: NormalizedPlan, thresholds: Thresholds): Verdict {
+  async judge({ plan, thresholds }: JudgeInput): Promise<Verdict> {
+    if (!plan) return { status: 'pass' };
     const nodes = flattenPlan(plan);
     const reasons: Reason[] = [];
 
