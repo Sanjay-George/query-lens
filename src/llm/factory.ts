@@ -28,7 +28,6 @@ function buildAnthropic(llm: LlmConfig): LlmClient {
 
 function buildAzure(llm: LlmConfig): LlmClient {
   const apiKey = requireEnv('AZURE_API_KEY');
-  // The Zod schema guarantees these are present for the azure provider.
   if (!llm.resourceName || !llm.models?.small || !llm.models?.large) {
     throw new Error('azure provider requires llm.resourceName and llm.models.{small,large}');
   }

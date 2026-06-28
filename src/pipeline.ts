@@ -87,10 +87,12 @@ export async function reviewDiff(deps: PipelineDeps): Promise<ReviewResult[]> {
       const plan = await analyzeQuery(db, query);
       const verdict = judge.judge(plan, config.thresholds);
       result = { query, plan, verdict };
-      if (verdict.status === 'fail') {
-        const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
-        if (suggestion) result.suggestion = suggestion;
-      }
+
+      // Pushing optimizer to later milestones.
+      // if (verdict.status === 'fail') {
+      //   const suggestion = await optimizer.optimize({ query, plan, reasons: verdict.reasons });
+      //   if (suggestion) result.suggestion = suggestion;
+      // }
     }
     catch (err) {
       if (verbose) {
