@@ -56,9 +56,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci && npm run build
-      - name: Seed database
-        env: { PGPASSWORD: postgres }
-        run: psql -h 127.0.0.1 -U postgres -d app -f ci/seed.sql
+      # Optional step: Seed database. Alternatively, point to existing DB or skip.
+      # - name: Seed database
+      #   env: { PGPASSWORD: postgres }
+      #   run: psql -h 127.0.0.1 -U postgres -d app -f ci/seed.sql
       - name: Review PR
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
