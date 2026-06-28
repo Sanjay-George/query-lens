@@ -15,7 +15,7 @@ Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now; 
 
 ## Quick start
 
-Requires Node 20+ and an AI provider key (Anthropic default, or Azure OpenAI) — only needed when running against real PRs.
+Requires Node 20+ and an AI provider key (Anthropic default, or Azure OpenAI).
 
 ```bash
 npm install
@@ -35,7 +35,7 @@ See **[TESTING.md](TESTING.md)** for local + CI setup.
 
 ## AI Providers
 
-One `LlmClient` interface, provider chosen in config. The extractor runs on a cheap `small` tier, the LLM judge on a stronger `large` tier. Keys come from the **environment, never config**. Adding a provider = one `case` in [factory.ts](src/llm/factory.ts) (DECISIONS §7).
+One `LlmClient` interface, provider chosen in config. The extractor runs on a `large` tier, the LLM judge runs on a cheap `small` tier. Keys come from the **environment, never config**. Adding a provider = one `case` in [factory.ts](src/llm/factory.ts) (DECISIONS §7).
 
 | Provider | `llm.provider` | Key (env) | Extra |
 |---|---|---|---|
