@@ -39,18 +39,18 @@ One `LlmClient` interface, provider chosen in config. The extractor runs on a `l
 
 | Provider | `llm.provider` | Key (env) | Extra |
 |---|---|---|---|
-| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | per-tier deployment names |
+| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | none |
 | Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
 
 ```yaml
-# Anthropic
+# Anthropic — defaults to claude-haiku-4-5 (small) / claude-opus-4-8 (large)
 llm:
   provider: anthropic
-  models:
+  models:               # optional
     small: claude-haiku-4-5-20251001
     large: claude-opus-4-8
 
-# Azure
+# Azure — deployment names required (no defaults)
 llm:
   provider: azure
   resourceName: my-azure-resource

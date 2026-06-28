@@ -19,12 +19,9 @@ export function createLlmClient(llm: LlmConfig): LlmClient {
 function buildAnthropic(llm: LlmConfig): LlmClient {
   const apiKey = requireEnv('ANTHROPIC_API_KEY');
   const provider = createAnthropic({ apiKey });
-  if (!llm.models?.small || !llm.models?.large) {
-    throw new Error('anthropic provider requires llm.models.{small,large}');
-  }
   const models: Record<ModelTier, ModelChoice> = {
-    small: { provider: 'anthropic', id: llm.models.small },
-    large: { provider: 'anthropic', id: llm.models.large },
+    small: { provider: 'anthropic', id: llm.models?.small ?? DEFAULT_ANTHROPIC_MODELS.small.id },
+    large: { provider: 'anthropic', id: llm.models?.large ?? DEFAULT_ANTHROPIC_MODELS.large.id },
   };
   return new VercelLlmClient((id) => provider(id), models);
 }
