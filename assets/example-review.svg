@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 752" width="860" height="752" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="A GitHub pull request review where the query-lens bot comments on a SQL query, citing findings from the SQL Server actual execution plan.">
+  <defs>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </defs>
+
+  <!-- card background -->
+  <rect x="10" y="10" width="840" height="732" rx="8" fill="#ffffff"/>
+
+  <!-- file header -->
+  <rect x="10" y="10" width="840" height="40" fill="#f6f8fa"/>
+  <line x1="10" y1="50" x2="850" y2="50" stroke="#d1d9e0" stroke-width="1"/>
+  <text x="26" y="35" class="mono" font-size="13" fill="#59636e">&lt;/&gt;</text>
+  <text x="52" y="35" class="mono" font-size="13" font-weight="600" fill="#1f2328">app/Repositories/OrderRepository.cs</text>
+
+  <!-- diff: hunk header row -->
+  <rect x="10" y="50" width="840" height="21" fill="#f6f8fa"/>
+  <text x="104" y="65" class="mono" font-size="12.5" fill="#0550ae">@@ -28,7 +28,12 @@ public IEnumerable&lt;Order&gt; TopRecentOrders()</text>
+
+  <!-- diff: added-line green band (rows +29..+33) -->
+  <rect x="10" y="92" width="840" height="105" fill="#e6ffec"/>
+
+  <!-- diff rows -->
+  <!-- r2 context 28/28 -->
+  <text x="44" y="86" class="mono" font-size="12.5" fill="#59636e" text-anchor="end">28</text>
+  <text x="86" y="86" class="mono" font-size="12.5" fill="#59636e" text-anchor="end">28</text>
+  <text x="108" y="86" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">        return _db.Query&lt;Order&gt;(@"</text>
+
+  <!-- r3 +29 -->
+  <text x="86" y="107" class="mono" font-size="12.5" fill="#1a7f37" text-anchor="end">29</text>
+  <text x="99" y="107" class="mono" font-size="12.5" fill="#1a7f37">+</text>
+  <text x="108" y="107" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">            SELECT o.id, o.total, o.created_at, u.name, u.email</text>
+
+  <!-- r4 +30 -->
+  <text x="86" y="128" class="mono" font-size="12.5" fill="#1a7f37" text-anchor="end">30</text>
+  <text x="99" y="128" class="mono" font-size="12.5" fill="#1a7f37">+</text>
+  <text x="108" y="128" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">            FROM orders o JOIN users u ON u.id = o.user_id</text>
+
+  <!-- r5 +31 -->
+  <text x="86" y="149" class="mono" font-size="12.5" fill="#1a7f37" text-anchor="end">31</text>
+  <text x="99" y="149" class="mono" font-size="12.5" fill="#1a7f37">+</text>
+  <text x="108" y="149" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">            WHERE o.total &gt; 500</text>
+
+  <!-- r6 +32 -->
+  <text x="86" y="170" class="mono" font-size="12.5" fill="#1a7f37" text-anchor="end">32</text>
+  <text x="99" y="170" class="mono" font-size="12.5" fill="#1a7f37">+</text>
+  <text x="108" y="170" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">              AND o.created_at &gt;= DATEADD(DAY, -30, GETDATE())</text>
+
+  <!-- r7 +33 -->
+  <text x="86" y="191" class="mono" font-size="12.5" fill="#1a7f37" text-anchor="end">33</text>
+  <text x="99" y="191" class="mono" font-size="12.5" fill="#1a7f37">+</text>
+  <text x="108" y="191" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">            ORDER BY o.total DESC</text>
+
+  <!-- r8 context 29/34 -->
+  <text x="44" y="212" class="mono" font-size="12.5" fill="#59636e" text-anchor="end">29</text>
+  <text x="86" y="212" class="mono" font-size="12.5" fill="#59636e" text-anchor="end">34</text>
+  <text x="108" y="212" class="mono" font-size="12.5" fill="#1f2328" xml:space="preserve">        ");</text>
+
+  <!-- comment section divider -->
+  <line x1="10" y1="218" x2="850" y2="218" stroke="#d1d9e0" stroke-width="1"/>
+
+  <!-- avatar (magnifying-glass lens) -->
+  <circle cx="41" cy="246" r="15" fill="#0969da"/>
+  <circle cx="38" cy="243" r="5" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <line x1="42" y1="247" x2="47" y2="252" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- comment meta -->
+  <text x="66" y="251" font-size="14" font-weight="600" fill="#1f2328">query-lens</text>
+  <rect x="152" y="239" width="32" height="18" rx="9" fill="#eaeef2"/>
+  <text x="168" y="252" font-size="11" fill="#59636e" text-anchor="middle">bot</text>
+  <text x="194" y="251" font-size="12" fill="#59636e">commented just now</text>
+
+  <!-- severity badge -->
+  <rect x="760" y="238" width="74" height="20" rx="10" fill="#fff8c5" stroke="#d4a72c" stroke-opacity="0.5"/>
+  <text x="797" y="252" font-size="11" font-weight="600" fill="#9a6700" text-anchor="middle">MEDIUM</text>
+
+  <!-- intro -->
+  <text x="26" y="287" font-size="13.5" fill="#1f2328">Captured the actual execution plan on staging (SQL Server 2022, orders &#8776; 4.1M rows). Two operators stand out:</text>
+
+  <!-- bullet 1 -->
+  <circle cx="32" cy="318" r="2" fill="#1f2328"/>
+  <text x="44" y="322" font-size="13.5" fill="#1f2328"><tspan font-weight="600">Clustered Index Scan on orders.</tspan> No index covers created_at / total, so it reads 4.1M rows</text>
+  <text x="44" y="341" font-size="13.5" fill="#1f2328">(84,211 logical reads) to return ~38k &#8212; heuristic: estimated rows &#247; rows returned &gt; 100&#215;.</text>
+
+  <!-- bullet 2 -->
+  <circle cx="32" cy="367" r="2" fill="#1f2328"/>
+  <text x="44" y="371" font-size="13.5" fill="#1f2328"><tspan font-weight="600">Sort spilled to tempdb.</tspan> The plan carries a SpillToTempDb warning &#8212; the memory grant</text>
+  <text x="44" y="390" font-size="13.5" fill="#1f2328">under-estimated the ORDER BY o.total DESC and spilled at level 2.</text>
+
+  <!-- execution-plan excerpt -->
+  <rect x="26" y="408" width="808" height="158" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1"/>
+  <text x="38" y="428" class="mono" font-size="11.5" fill="#59636e">-- Actual execution plan (StmtText)</text>
+  <text x="38" y="446" class="mono" font-size="11.5" xml:space="preserve"><tspan fill="#1f2328">|--Sort(ORDER BY:([o].[total] DESC))  </tspan><tspan fill="#cf222e">&#9888; operator used tempdb to spill data (level 2)</tspan></text>
+  <text x="38" y="464" class="mono" font-size="11.5" fill="#1f2328" xml:space="preserve">   |--Hash Match(Inner Join, HASH:([u].[id])=([o].[user_id]))</text>
+  <text x="38" y="482" class="mono" font-size="11.5" xml:space="preserve"><tspan fill="#1f2328">      |--</tspan><tspan fill="#cf222e">Clustered Index Scan</tspan><tspan fill="#1f2328">(OBJECT:([orders].[PK_orders]))</tspan></text>
+  <text x="38" y="500" class="mono" font-size="11.5" xml:space="preserve"><tspan fill="#1f2328">            EstimateRows: </tspan><tspan fill="#cf222e">4118540</tspan><tspan fill="#1f2328">   ActualRows: 38201</tspan></text>
+  <text x="38" y="522" class="mono" font-size="11.5" fill="#59636e">/* Missing Index (Impact 96.4): */</text>
+  <text x="38" y="540" class="mono" font-size="11.5" fill="#0550ae">CREATE NONCLUSTERED INDEX IX_orders_created_total</text>
+  <text x="38" y="558" class="mono" font-size="11.5" fill="#0550ae" xml:space="preserve">  ON dbo.orders (created_at, total DESC) INCLUDE (id, user_id);</text>
+
+  <!-- suggestion -->
+  <text x="26" y="592" font-size="11" font-weight="600" letter-spacing="0.4" fill="#6639ba">SUGGESTION</text>
+  <rect x="26" y="602" width="808" height="58" fill="#faf8ff"/>
+  <rect x="26" y="602" width="3" height="58" fill="#8250df"/>
+  <text x="42" y="625" font-size="13" fill="#1f2328">Apply the missing-index recommendation above &#8212; re-capturing the plan turns the Clustered Index</text>
+  <text x="42" y="645" font-size="13" fill="#1f2328">Scan into a Seek (~38k rows) and clears the tempdb spill. Add TOP (n) if callers only need the top rows.</text>
+
+  <!-- reply / resolve bar -->
+  <line x1="10" y1="680" x2="850" y2="680" stroke="#d1d9e0" stroke-width="1"/>
+  <rect x="26" y="696" width="560" height="34" rx="6" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
+  <text x="40" y="717" font-size="13" fill="#818b98">Reply&#8230;</text>
+  <rect x="600" y="696" width="234" height="34" rx="6" fill="#1f883d"/>
+  <path d="M 624 713 l 4 4 l 7 -8" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="645" y="717" font-size="13" font-weight="500" fill="#ffffff">Resolve conversation</text>
+
+  <!-- card outline drawn last for a clean rounded border -->
+  <rect x="10" y="10" width="840" height="732" rx="8" fill="none" stroke="#d1d9e0" stroke-width="1"/>
+</svg>

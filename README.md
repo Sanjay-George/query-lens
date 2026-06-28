@@ -4,12 +4,14 @@
 </tr></table>
 
 
-
 > ⚠️ Early-stage WIP
 
 A CI tool that flags potentially slow SQL in pull requests. It pulls queries out of a PR diff (raw SQL, ORM code, query builders), judges them for performance — with a heuristic plan check when a DB is wired and an LLM acting as a senior DB engineer — and posts inline review comments.
 
 Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now; Eloquent, Prisma, and SQLAlchemy planned.
+
+<img src="assets/example-review.svg" alt="Query Lens posting an inline review comment on a SQL query, citing the SQL Server execution plan: a clustered index scan, a tempdb sort spill, and a missing-index suggestion." width="820" />
+
 
 ## Quick start
 
