@@ -23,14 +23,16 @@ Requires Node 20+ and an AI provider key (Anthropic default, or Azure OpenAI).
 npm install
 npm run typecheck
 
+# Add `.query-lens.yml`. See Configuration section below
+
 # Run the CLI from source (no build needed):
 npm run dev -- review --help
 
 # Console-only review of a saved diff:
-node dist/cli.js review --diff some.diff        # after `npm run build`
+npm run dev -- review --diff some.diff --config .query-lens.yml       
 
-# Review a real PR and post comments (needs provider key + GITHUB_TOKEN):
-node dist/cli.js review --pr 123 --repo your-org/your-repo
+# Review a real PR and post comments (needs GITHUB_TOKEN):
+npm run dev -- review --pr 123 --repo your-org/your-repo --config .query-lens.yml
 ```
 
 See **[TESTING.md](TESTING.md)** for local + CI setup.
@@ -83,6 +85,8 @@ Optional blocks:
 | `llm.*` | — | Provider/models (see above). |
 | `ignore` | `[]` | Glob patterns to skip (accepted by schema; not yet wired). |
 
+
+<!--
 ## Layout
 
 ```
@@ -99,5 +103,7 @@ src/
   report/       console + GitHub PR reporters
   baseline/     standalone AI-only reviewer (comparison benchmark; not used by the pipeline)
 ```
+
+-->
 
 See [ROADMAP.md](ROADMAP.md) for milestones and [DECISIONS.md](DECISIONS.md) for the "why".
