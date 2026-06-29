@@ -70,12 +70,19 @@ llm:
 
 ```yaml
 db:
-  dialect: postgres                                   # postgres | sqlserver (mysql planned)
-  url: postgres://app:${DB_PASSWORD}@localhost:5432/mydb   # ${VAR} pulled from env
+  dialect: postgres  # postgres | sqlserver (mysql planned)
+  url: postgres://app:${DB_PASSWORD}@localhost:5432/mydb  
+  # OR
+  url: ${DATABASE_URL}
+llm:
+  provider: anthropic
+  ...
+thresholds:  # optional
+  ...
 ```
 
-`${VAR}` placeholders in `db.url` are substituted from the environment at load time —
-keep credentials out of the committed `.query-lens.yml`. Whole URLs work too: `url: ${DATABASE_URL}`.
+`${VAR}` placeholders in `db.url` are substituted from the environment at load time to
+keep credentials out of the committed `.query-lens.yml`
 
 Optional blocks:
 
