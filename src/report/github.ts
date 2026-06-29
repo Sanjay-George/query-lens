@@ -78,34 +78,57 @@ function commentableAnchors(diffText: string): Set<string> {
 function renderBody(r: ReviewResult): string {
   const verdict = r.verdict.status === 'fail' ? r.verdict : null;
   const reasons = verdict?.reasons ?? [];
-  const heading = verdict?.severity
-    ? `**Query Lens — potential slow query (${verdict.severity.toUpperCase()})**`
-    : '**Query Lens — potential slow query**';
-  const lines = [
-    heading,
+  const lines: string[] = [];
+  if (verdict?.severity) {
+    lines.push(severityBadge(verdict.severity), '');
+  }
+  lines.push(
+    '**Query Lens — potential slow query**',
     '',
     '```sql',
     r.query.sql,
     '```',
     '',
     ...reasons.map((reason) => `- \`${reason.rule}\`: ${reason.detail}`),
-  ];
+  );
   if (verdict?.suggestion) {
     lines.push('', renderSuggestion(verdict.suggestion));
   }
-  lines.push('', '_Advisory only — Query Lens never fails the build._');
   return lines.join('\n');
 }
 
+// Light tints with auto-picked dark text for a soft, modern badge look.
+// True outlined borders aren't achievable — GitHub strips inline CSS from
+// markdown, so we lean on shields.io's luminance-based text-color picking.
+const SEVERITY_COLORS: Record<string, string> = {
+  CRITICAL: 'FECACA',
+  HIGH: 'FECACA',
+  MEDIUM: 'FDE68A',
+  LOW: 'BFDBFE',
+};
+
+function severityBadge(severity: string): string {
+  const label = severity.toUpperCase();
+  const color = SEVERITY_COLORS[label] ?? 'E5E7EB';
+  // %20 padding around the label gives the pill extra horizontal breathing room.
+  return `<img align="right" src="https://img.shields.io/badge/%20${label}%20-${color}?style=flat-square" alt="${label}" />`;
+}
+
 function renderSuggestion(s: Suggestion): string {
-  const inner = [s.rationale];
+  // Each value must be split into individual lines before prefixing — multi-line
+  // strings inside a `>` blockquote escape the [!TIP] alert if any line lacks the prefix.
+  const inner: string[] = s.rationale.split('\n');
   if (s.rewrittenSql) {
-    inner.push('', '```sql', s.rewrittenSql, '```');
+    inner.push('', '```sql', ...s.rewrittenSql.split('\n'), '```');
   }
   if (s.indexHints && s.indexHints.length > 0) {
     inner.push('', '**Index hints:**', ...s.indexHints.map((h) => `- \`${h}\``));
   }
-  return ['<details>', '<summary>Suggested optimization</summary>', '', ...inner, '', '</details>'].join('\n');
+  // Nest <details> *inside* the [!TIP] alert (not the other way around) — GitHub
+  // won't render `[!TIP]` if it isn't the first line of a top-level blockquote.
+  const body = ['<details>', '<summary>Suggested optimization</summary>', '', ...inner, '', '</details>'];
+  const quoted = body.map((line) => (line === '' ? '>' : `> ${line}`)).join('\n');
+  return `> [!TIP]\n${quoted}`;
 }
 
 function summaryBody(posted: number, skipped: number): string {
