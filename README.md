@@ -24,6 +24,7 @@ npm install
 npm run typecheck
 
 # Add `.query-lens.yml`. See Configuration section below
+# Copy .env.example -> .env and substitute values
 
 # Run the CLI from source (no build needed):
 npm run dev -- review --help
