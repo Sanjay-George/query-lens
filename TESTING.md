@@ -1,37 +1,63 @@
-# Testing Query Lens
+# Testing
 
-Run it **locally** (`--diff`, console output) or **on GitHub Actions** (`--pr`, inline comments).
+Pipeline: `diff → extract SQL → EXPLAIN (if DB reachable) → judge (heuristic + LLM) → report`.
 
-Pipeline: `diff → extract SQL → EXPLAIN (if DB wired) → judge (heuristic + LLM) → report`.
+Every run needs an AI provider key and a `.query-lens.yml`. Minimal config:
 
-## Local
-
-Needs an AI provider key (and a seeded local DB for plan-grounded judging).
-
-```bash
-# 1. Link the CLI (re-run `npm run build` after editing source)
-npm install && npm run build && npm link
-
-# 2. In the repo you want to review, add .query-lens.yml:
-#    db:  { dialect: postgres, url: postgres://user:pass@localhost:5432/db }
-#    llm: { provider: anthropic }   # or azure — see README
-
-# 3. Diff your branch and review it
-git diff main...HEAD > /tmp/changes.diff
-export ANTHROPIC_API_KEY=sk-ant-...
-query-lens review --diff /tmp/changes.diff --config .query-lens.yml
+```yaml
+db:
+  dialect: postgres
+  url: postgres://user:pass@localhost:5432/mydb
+llm:
+  provider: anthropic
+  models:
+    small: claude-haiku-4-5
+    large: claude-opus-4-8
 ```
 
-Notes:
-- **Run from the repo root** with the branch checked out — the extractor reads working-tree files via diff paths (degrades gracefully if missing).
-- **Only added lines are analyzed.** Commit your changes first.
-- **Seed the DB with realistic cardinalities** — plans on empty tables are meaningless. Without a DB the LLM judge still reviews from the SQL alone.
+The `db` block is required by the schema. If the DB is unreachable the judge falls back to
+reviewing from the SQL text alone — but plans are where the real signal is, so seed it with
+**realistic row counts** (an empty DB gives meaningless plans). 
+`docker-compose.yml` contains postgres and sql server images to quickly get started.
 
-To post inline comments from your laptop, open a PR and add `GITHUB_TOKEN`, then use `--pr 123 --repo org/repo`.
+> **Tip:** Run `npm link` to put a `query-lens` binary on your PATH so you can run it from any repo.
+> Re-run `npm run build` before `query-lens` if you used `npm link`.
 
-## GitHub Actions
+---
 
-Comments are advisory only (`event: COMMENT` — never blocks the build). You need: a DB the runner can reach **seeded with realistic data**, an AI key in a secret, and `GITHUB_TOKEN` with `pull-requests: write`.
+## 1. Local, from a diff file — fastest, no GitHub
+
+The quickest loop. Reviews a unified diff and prints findings to the console.
+
+```bash
+# Any git repo with query changes
+git diff main...HEAD > /tmp/changes.diff      # commit first — only added lines are analyzed
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# This repo
+npm run dev -- review --diff /tmp/changes.diff --config .query-lens.yml
+```
+
+
+## 2. Local, against a real PR (uses Github reporter)
+
+Same pipeline, but fetches the diff from the GitHub API and posts inline comments back to the PR.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export GITHUB_TOKEN=ghp_...        # needs pull-requests: write to post comments
+
+npm run dev -- review --pr 123 --repo org/repo --config .query-lens.yml
+```
+
+`--repo` defaults to `$GITHUB_REPOSITORY` if set. 
+
+## 3. GitHub Actions, on a test repo
+
+Drop this workflow into a **target repository** and open a PR there. Add `ANTHROPIC_API_KEY`
+as a repo secret; `GITHUB_TOKEN` is provided automatically.
+
+> ⚠️ WIP
 
 ```yaml
 # .github/workflows/query-lens.yml
@@ -56,10 +82,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci && npm run build
-      # Optional step: Seed database. Alternatively, point to existing DB or skip.
-      # - name: Seed database
-      #   env: { PGPASSWORD: postgres }
-      #   run: psql -h 127.0.0.1 -U postgres -d app -f ci/seed.sql
+ 
       - name: Review PR
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -67,21 +90,16 @@ jobs:
         run: node dist/cli.js review --pr "${{ github.event.pull_request.number }}" --config .query-lens.yml
 ```
 
-Matching `.query-lens.yml`: `db.url: postgres://postgres:postgres@127.0.0.1:5432/app`.
 
-- **Azure?** Use `AZURE_API_KEY` and set `provider: azure` + `resourceName` + deployment names (README).
-- **SQL Server?** Use the `mcr.microsoft.com/mssql/server` container, `dialect: sqlserver`, `mssql://...` URL.
-
-A flagged query → an inline comment on the changed line (severity, reasons, and a suggested rewrite/index in a `<details>`). Unanchored findings are skipped; nothing flagged → no review posted.
-
-## Troubleshooting
+## 4. Troubleshooting
 
 | Symptom | Cause |
 |---|---|
-| `GITHUB_TOKEN is not set` | Not passed through `env:`. |
+| `Config file not found` | Wrong `--config` path, or not running from the repo root. |
+| `GITHUB_TOKEN is not set` | Not exported (local) or not passed through `env:` (Actions). |
 | `403` posting review | Missing `permissions: pull-requests: write`. |
-| `ECONNREFUSED` / DB errors | DB not ready or URL wrong; check `health-cmd` and seed step. |
-| TLS error (SQL Server) | Append `?encrypt=false` or `?trustServerCertificate=true`. |
+| `ECONNREFUSED` / DB errors | DB not up or URL wrong; check the container and the `url`. |
+| TLS error (SQL Server) | Append `?encrypt=false` or `?trustServerCertificate=true` to the URL. |
 | Comments never appear, log says `skipping …` | Flagged line isn't an added line — won't anchor there by design. |
-| Nothing flagged, plans empty | DB has no data — seed it. |
+| Nothing flagged, plans empty | DB has no data — seed it with realistic cardinalities. |
 | `mysql … not yet supported` | Deferred; use Postgres or SQL Server. |
