@@ -38,31 +38,6 @@ npm run dev -- review --pr 123 --repo your-org/your-repo --config .query-lens.ym
 
 See **[TESTING.md](TESTING.md)** for local + CI setup.
 
-## AI Providers
-
-One `LlmClient` interface, provider chosen in config. The extractor runs on a `large` tier, the LLM judge runs on a cheap `small` tier. Keys come from the **environment, never config**. Adding a provider = one `case` in [factory.ts](src/llm/factory.ts) (DECISIONS §7).
-
-| Provider | `llm.provider` | Key (env) | Extra |
-|---|---|---|---|
-| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | per-tier deployment names |
-| Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
-
-```yaml
-# Anthropic
-llm:
-  provider: anthropic
-  models:
-    small: claude-haiku-4-5
-    large: claude-opus-4-8
-
-# Azure
-llm:
-  provider: azure
-  resourceName: my-azure-resource
-  models:
-    small: my-gpt-4o-mini-deployment
-    large: my-gpt-4o-deployment
-```
 
 ## Configuration
 
@@ -93,9 +68,35 @@ Optional blocks:
 | `thresholds.maxQueriesPerPr` | `20` | Cap on queries reviewed per PR (bounds LLM/DB cost). |
 | `thresholds.minExtractorConfidence` | `0.7` | Drop extracted queries below this confidence. |
 | `thresholds.rowsFilteredRatio` | `0.9` | Flag when this fraction of scanned rows is filtered out. |
-| `llm.*` | — | Provider/models (see above). |
+| `llm.*` | — | Provider/models (see AI Providers section). |
 | `ignore` | `[]` | Glob patterns to skip (accepted by schema; not yet wired). |
 
+
+## AI Providers
+
+One `LlmClient` interface, provider chosen in config. The extractor runs on a `large` tier, the LLM judge runs on a cheap `small` tier. Keys come from the **environment, never config**. Adding a provider = one `case` in [factory.ts](src/llm/factory.ts) (DECISIONS §7).
+
+| Provider | `llm.provider` | Key (env) | Extra |
+|---|---|---|---|
+| Anthropic *(default)* | `anthropic` | `ANTHROPIC_API_KEY` | per-tier deployment names |
+| Azure OpenAI | `azure` | `AZURE_API_KEY` | `resourceName` + per-tier deployment names |
+
+```yaml
+# Anthropic
+llm:
+  provider: anthropic
+  models:
+    small: claude-haiku-4-5
+    large: claude-opus-4-8
+
+# Azure
+llm:
+  provider: azure
+  resourceName: my-azure-resource
+  models:
+    small: my-gpt-4o-mini-deployment
+    large: my-gpt-4o-deployment
+```
 
 <!--
 ## Layout
