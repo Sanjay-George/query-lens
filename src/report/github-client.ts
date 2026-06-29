@@ -1,8 +1,11 @@
 export interface ReviewComment {
   path: string;
-  /** 1-indexed line in the new file. Must be part of the PR diff. */
+  /** 1-indexed line in the new file. For multi-line comments, the last line of the range. */
   line: number;
   side: 'RIGHT';
+  /** First line of the range for a multi-line comment. Must be < `line` and part of the PR diff. */
+  start_line?: number;
+  start_side?: 'RIGHT';
   body: string;
 }
 

@@ -31,18 +31,26 @@ export class GithubReporter implements Reporter {
 
     for (const r of results) {
       if (r.verdict.status !== 'fail') continue;
-      const anchor = `${r.query.file}:${r.query.startLine}`;
-      if (!anchors.has(anchor)) {
-        this.log(`skipping ${anchor}: line not present in the diff, cannot anchor a comment`);
+      const { file, startLine, endLine } = r.query;
+      if (!anchors.has(`${file}:${startLine}`)) {
+        this.log(`skipping ${file}:${startLine}: line not present in the diff, cannot anchor a comment`);
         skipped += 1;
         continue;
       }
-      comments.push({
-        path: r.query.file,
-        line: r.query.startLine,
+      // GitHub rejects multi-line comments unless both endpoints are commentable
+      // in the diff; fall back to a single-line anchor on startLine if endLine isn't.
+      const multiLine = endLine > startLine && anchors.has(`${file}:${endLine}`);
+      const comment: ReviewComment = {
+        path: file,
+        line: multiLine ? endLine : startLine,
         side: 'RIGHT',
         body: renderBody(r),
-      });
+      };
+      if (multiLine) {
+        comment.start_line = startLine;
+        comment.start_side = 'RIGHT';
+      }
+      comments.push(comment);
     }
 
     if (comments.length === 0) {

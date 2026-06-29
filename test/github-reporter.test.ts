@@ -65,7 +65,10 @@ describe('GithubReporter', () => {
 
     const comment = review.comments[0]!;
     expect(comment.path).toBe('src/users-repo.ts');
-    expect(comment.line).toBe(4);
+    // Multi-line anchor: line = endLine (6), start_line = startLine (4).
+    expect(comment.line).toBe(6);
+    expect(comment.start_line).toBe(4);
+    expect(comment.start_side).toBe('RIGHT');
     expect(comment.side).toBe('RIGHT');
     expect(comment.body).toContain('excessive-rows-filtered');
     expect(comment.body).toContain('SELECT * FROM users WHERE active = true');
@@ -90,7 +93,8 @@ describe('GithubReporter', () => {
 
     expect(gh.reviews).toHaveLength(1);
     expect(gh.reviews[0]!.comments).toHaveLength(1);
-    expect(gh.reviews[0]!.comments[0]!.line).toBe(4);
+    expect(gh.reviews[0]!.comments[0]!.line).toBe(6);
+    expect(gh.reviews[0]!.comments[0]!.start_line).toBe(4);
     expect(gh.reviews[0]!.body).toMatch(/omitted/);
   });
 
