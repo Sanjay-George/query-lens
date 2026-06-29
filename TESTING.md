@@ -7,13 +7,16 @@ Every run needs an AI provider key and a `.query-lens.yml`. Minimal config:
 ```yaml
 db:
   dialect: postgres
-  url: postgres://user:pass@localhost:5432/mydb
+  url: postgres://app:${DB_PASSWORD}@localhost:5432/mydb   # ${VAR} pulled from env
 llm:
   provider: anthropic
   models:
     small: claude-haiku-4-5
     large: claude-opus-4-8
 ```
+
+`db.url` supports `${VAR}` env-var substitution so credentials stay out of the committed file
+(a whole-URL form like `url: ${DATABASE_URL}` works too).
 
 The `db` block is required by the schema. If the DB is unreachable the judge falls back to
 reviewing from the SQL text alone — but plans are where the real signal is, so seed it with

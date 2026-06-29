@@ -73,6 +73,21 @@ export async function loadConfig(
     throw new Error(`Config file not found at ${absolute}`);
   }
   const raw = await readFile(absolute, 'utf8');
-  const parsed = parseYaml(raw);
+  const parsed = parseYaml(raw) as { db?: { url?: unknown } } | null | undefined;
+  if (parsed && typeof parsed === 'object' && parsed.db && typeof parsed.db.url === 'string') {
+    parsed.db.url = expandEnv(parsed.db.url, 'db.url');
+  }
   return ConfigSchema.parse(parsed);
+}
+
+// Substitutes ${VAR} with process.env.VAR. Keeps secrets out of the committed
+// config file — users write e.g. `url: postgres://app:${DB_PASSWORD}@host/db`.
+function expandEnv(value: string, fieldPath: string): string {
+  return value.replace(/\$\{([A-Z_][A-Z0-9_]*)\}/gi, (_, name: string) => {
+    const v = process.env[name];
+    if (v === undefined) {
+      throw new Error(`${fieldPath} references env var \${${name}} which is not set`);
+    }
+    return v;
+  });
 }
