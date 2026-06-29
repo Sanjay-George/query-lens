@@ -12,7 +12,7 @@ Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now; 
 
 <!-- <img src="assets/example-review.svg" alt="Query Lens posting an inline review comment on a SQL query, citing the SQL Server execution plan: a clustered index scan, a tempdb sort spill, and a missing-index suggestion." width="820" /> -->
 
-<img width="789" height="715" alt="Query Lens posting an inline review comment" src="https://github.com/user-attachments/assets/13777093-94e5-4f14-bf3a-2987ce05e693" />
+<img width="789" height="712" alt="Query Lens posting an inline review comment" src="https://github.com/user-attachments/assets/96f3cfc0-98e6-45e9-8adf-d4e0e73fe218" />
 
 
 ## Quick start
@@ -23,14 +23,17 @@ Requires Node 20+ and an AI provider key (Anthropic default, or Azure OpenAI).
 npm install
 npm run typecheck
 
+# Add `.query-lens.yml`. See Configuration section below
+# Copy .env.example -> .env and substitute values
+
 # Run the CLI from source (no build needed):
 npm run dev -- review --help
 
 # Console-only review of a saved diff:
-node dist/cli.js review --diff some.diff        # after `npm run build`
+npm run dev -- review --diff some.diff --config .query-lens.yml       
 
-# Review a real PR and post comments (needs provider key + GITHUB_TOKEN):
-node dist/cli.js review --pr 123 --repo your-org/your-repo
+# Review a real PR and post comments (needs GITHUB_TOKEN):
+npm run dev -- review --pr 123 --repo your-org/your-repo --config .query-lens.yml
 ```
 
 See **[TESTING.md](TESTING.md)** for local + CI setup.
@@ -86,6 +89,8 @@ Optional blocks:
 | `llm.*` | — | Provider/models (see above). |
 | `ignore` | `[]` | Glob patterns to skip (accepted by schema; not yet wired). |
 
+
+<!--
 ## Layout
 
 ```
@@ -102,5 +107,7 @@ src/
   report/       console + GitHub PR reporters
   baseline/     standalone AI-only reviewer (comparison benchmark; not used by the pipeline)
 ```
+
+-->
 
 See [ROADMAP.md](ROADMAP.md) for milestones and [DECISIONS.md](DECISIONS.md) for the "why".
