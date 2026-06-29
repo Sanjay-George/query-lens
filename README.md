@@ -10,7 +10,9 @@ A CI tool that flags potentially slow SQL in pull requests. It pulls queries out
 
 Supports Postgres and SQL Server (MySQL planned). Raw-SQL extraction works now; Eloquent, Prisma, and SQLAlchemy planned.
 
-<img src="assets/example-review.svg" alt="Query Lens posting an inline review comment on a SQL query, citing the SQL Server execution plan: a clustered index scan, a tempdb sort spill, and a missing-index suggestion." width="820" />
+<!-- <img src="assets/example-review.svg" alt="Query Lens posting an inline review comment on a SQL query, citing the SQL Server execution plan: a clustered index scan, a tempdb sort spill, and a missing-index suggestion." width="820" /> -->
+
+<img width="789" height="715" alt="Query Lens posting an inline review comment" src="https://github.com/user-attachments/assets/13777093-94e5-4f14-bf3a-2987ce05e693" />
 
 
 ## Quick start
